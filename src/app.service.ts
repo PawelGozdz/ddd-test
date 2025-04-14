@@ -5,7 +5,6 @@ class TestEvent extends DomainEvent {}
 @EventHandler(TestEvent)
 export class AppService {
   async handle(event: any): Promise<string> {
-    // console.log('EVENt', event)
     return 'Hello World!';
   }
 }
