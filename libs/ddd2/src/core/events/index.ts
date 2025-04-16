@@ -6,6 +6,7 @@ export * from './event-dispatcher';
 
 // Domain event base class
 export * from './domain-event';
+export * from './domain-event.utils';
 
 // Domain handler
 export * from './event-handler-interface';

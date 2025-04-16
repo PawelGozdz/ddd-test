@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { AggregateRoot, BusinessPolicy, BusinessRuleValidator, createPolicyFactory, DomainEvent, EventHandler, IAggregateRoot, IDomainEvent, EntityId, IEventDispatcher, Specification } from '@app/libs';
+import { AggregateRoot, BusinessPolicy, BusinessRuleValidator, createPolicyFactory, DomainEvent, EventHandler, IDomainEvent, EntityId, IEventDispatcher, Specification } from '@app/libs';
 import { TestRepo } from './repo';
 interface User {
   id: string;
@@ -12,24 +12,68 @@ interface User {
 }
 class TestEvent extends DomainEvent {}
 
-class Test extends AggregateRoot<string> {
-  constructor(id: string) {
-    super({
-      id: EntityId.createWithRandomUUID(),
-    });
+interface UserState {
+  userId: string;
+  isAdult: boolean;
+}
+
+class UserRoot extends AggregateRoot<string, UserState> {
+  private age: number;
+  
+  constructor(params: { id: EntityId<string>, age: number; }) {
+    super(params);
+    // Enable required capabilities
+    // this.enableSnapshots();
+    this.enableVersioning();
+    
+    // Register event upcasters
+    // this.registerUpcaster('OrderItemAdded', 1, {
+    //   upcast: (payload, metadata) => ({
+    //     ...payload,
+    //     addedAt: metadata.timestamp || new Date() // Add timestamp in v2
+    //   })
+    // });
   }
 
-  public static create(id: string): Test {
-    const instance = new Test(id)
-    instance.getId()
-    instance.apply(new TestEvent({ id },{ source: instance.constructor.name }));
-    return instance;
-  }
+  public static create(user: User) {
+      const usr = new UserRoot({
+        id: EntityId.fromText(user.id),
+        age: user.age
+      });
+      console.log('User created:', usr);
+      usr.apply(new TestEvent({
+      source: UserRoot.name,
+      // source: this.constructor.name,
+      payload: user,
+    }, {
+      eventVersion: 2
+    }));
 
-  onTestEvent(event: TestEvent): void {
-    console.log('Handling test event==s===>+++', event);
+    return usr;
   }
-
+  
+  // serializeState(): UserState {
+  //   return {
+  //     userId: this.getId().value,
+  //     isAdult: Number(this.age) >= 18
+  //   };
+  // }
+  
+  // deserializeState(state: UserState): void {
+    
+  // }
+  
+  // Version-specific handlers
+  // onOrderItemAdded_v1(event: TestEvent) {
+  //   // Handle v1 event format
+  //   // this._items.push(payload);
+  //   console.log('EVENT VERSION 1')
+  // }
+  
+  // onOrderItemAdded_v2(payload) {
+  //   // Handle v2 event format with timestamp
+  //   console.log('EVENT VERSION 2')
+  // }
 }
 
 @Controller()
@@ -70,12 +114,14 @@ export class AppController {
       policyFactory.register('MY POLICY', basicUserValidator.toSpecification(), 'POLICY_CODE', 'POLICY_MESSAGE', user => user);
 
 
-      const ag = Test.create('1');
+      // const ag = new UserRoot({id: EntityId.fromText('asdfasfd'), age: 19});
+      const ag = UserRoot.create({id: 'asdfasfd', age: 19, email: 'test', name: 'test', address: 123});
 
       this.repo.save(ag)
 
     // this.dispatcher.dispatchEvents(ev);
-    return ag.createSnapshot()
+    return ag
+    // return ag.createSnapshot()
     // return 'this.appService.getHello();'
   }
   

@@ -1,5 +1,5 @@
-import { IAggregateRoot } from '../domain/aggregate-root';
-// TODO: delete
+import { IAggregateRoot } from "../domain/aggregate-interfaces";
+
 /**
  * Interface for basic repository operations
  * Provides a minimal contract for aggregate persistence

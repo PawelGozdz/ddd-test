@@ -1,92 +1,55 @@
 /**
- * Interface defining the basic structure of a domain event
- * Domain events represent something that happened in the domain
+ * Metadata for domain events
+ * Contains additional information about the event context
  */
-export interface IDomainEvent<T = any> {
-  /**
-   * Unique identifier for the event
-   */
-  readonly eventId: string;
+export interface IEventMetadata {
+  /** Unique identifier for the event */
+  eventId?: string;
   
-  /**
-   * When the event occurred
-   */
-  readonly occurredOn: Date;
+  /** When the event occurred */
+  timestamp?: Date;
   
-  /**
-   * Type of the event, typically the class name
-   */
-  readonly eventType: string;
+  /** Correlation ID for related events */
+  correlationId?: string;
   
-  /**
-   * Payload containing the event data
-   */
-  readonly payload?: T;
+  /** ID of the event that caused this event */
+  causationId?: string;
+  
+  /** ID of the aggregate that generated the event */
+  aggregateId?: string | number;
+  
+  /** Type of the aggregate that generated the event */
+  aggregateType?: string;
+  
+  /** Version of the aggregate after applying the event */
+  aggregateVersion?: number;
+  
+  /** Version of the event structure (used for versioning) */
+  eventVersion?: number;
+  
+  /** ID of the user or system that triggered the event */
+  userId?: string;
+  
+  /** Additional application-specific metadata */
+  [key: string]: any;
 }
 
 /**
- * Optional metadata for domain events
- * This can be extended based on specific needs
+ * Base interface for domain events
+ * Represents something that happened in the domain
  */
-export interface DomainEventMetadata {
-  /**
-   * ID to correlate related events
-   */
-  correlationId?: string;
+export interface IDomainEvent<P = any> {
+  /** Type of the event */
+  eventType: string;
   
-  /**
-   * ID of the event that caused this event
-   */
-  causationId?: string;
-  
-  /**
-   * When the event occurred (may differ from occurredOn in some scenarios)
-   */
-  timestamp?: Date;
-  
-  /**
-   * Who or what initiated the action leading to this event
-   */
-  actor?: string;
-  
-  /**
-   * Custom metadata fields
-   */
-  [key: string]: any;
+  /** Payload (data) of the event */
+  payload?: P;
 }
 
 /**
  * Extended domain event interface with metadata
  */
-export interface IExtendedDomainEvent<T = any> extends IDomainEvent<T> {
-  /**
-   * Event metadata
-   */
-  readonly metadata?: DomainEventMetadata;
-}
-
-/**
- * Information about changes to an aggregate
- * Can be used for optimistic concurrency control
- */
-export interface IAggregateChangeTracker {
-  /**
-   * Aggregate ID
-   */
-  readonly aggregateId: string;
-  
-  /**
-   * Aggregate type
-   */
-  readonly aggregateType: string;
-  
-  /**
-   * Previous version of the aggregate
-   */
-  readonly previousVersion: number;
-  
-  /**
-   * New version of the aggregate
-   */
-  readonly newVersion: number;
+export interface IExtendedDomainEvent<P = any> extends IDomainEvent<P> {
+  /** Event metadata */
+  metadata?: IEventMetadata;
 }

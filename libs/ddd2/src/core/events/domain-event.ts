@@ -1,5 +1,5 @@
 import { LibUtils } from '@/utils';
-import { DomainEventMetadata, IExtendedDomainEvent } from './domain-event-interfaces';
+import { IEventMetadata, IExtendedDomainEvent } from './domain-event-interfaces';
 
 /**
  * Base implementation of a domain event
@@ -29,7 +29,7 @@ export abstract class DomainEvent<T = any> implements IExtendedDomainEvent<T> {
   /**
    * Event metadata
    */
-  public readonly metadata?: DomainEventMetadata;
+  public readonly metadata?: IEventMetadata;
 
   /**
    * Creates a new domain event
@@ -37,7 +37,7 @@ export abstract class DomainEvent<T = any> implements IExtendedDomainEvent<T> {
    * @param payload - The event data
    * @param metadata - Optional metadata for the event
    */
-  constructor(payload?: T, metadata?: DomainEventMetadata) {
+  constructor(payload?: T, metadata?: IEventMetadata) {
     this.eventId = DomainEvent.generateId();
     this.occurredOn = new Date();
     this.eventType = this.constructor.name;
@@ -63,8 +63,8 @@ export abstract class DomainEvent<T = any> implements IExtendedDomainEvent<T> {
    * @param metadata - Metadata to merge with existing metadata
    * @returns A new event instance with combined metadata
    */
-  public withMetadata(metadata: Partial<DomainEventMetadata>): DomainEvent<T> {
-    const EventClass = this.constructor as new (payload?: T, metadata?: DomainEventMetadata) => DomainEvent<T>;
+  public withMetadata(metadata: Partial<IEventMetadata>): DomainEvent<T> {
+    const EventClass = this.constructor as new (payload?: T, metadata?: IEventMetadata) => DomainEvent<T>;
     
     return new EventClass(this.payload, {
       ...this.metadata,
