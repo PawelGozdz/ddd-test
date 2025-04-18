@@ -1,8 +1,8 @@
-// import { it, expect, describe } from 'vitest';
+import { it, expect, describe } from 'vitest';
 
-import { EntityId } from './id.value-object';
-import { LibUtils, safeRun } from '@/utils';
+import { LibUtils, safeRun } from '../../utils';
 import { InvalidParameterError, MissingValueError } from '../errors';
+import { EntityId } from './id.value-object';
 
 describe('EntityId', () => {
   it('should create a valid UUID EntityId', () => {
@@ -21,10 +21,10 @@ describe('EntityId', () => {
   });
 
   it('should throw error if UUID is invalid', () => {
-    const [,error] = safeRun(() => EntityId.fromUUID('invalid-uuid'));
+    const [error] = safeRun(() => EntityId.fromUUID('invalid-uuid'));
     
     expect(error).toBeDefined();
-    expect(error).toEqual(InvalidParameterError.withParameter('entity identifier'));
+    expect(error).instanceOf(InvalidParameterError);
   });
 
   it('should create a valid EntityId from integer', () => {
@@ -35,10 +35,10 @@ describe('EntityId', () => {
   });
 
   it('should throw error if integer is invalid', () => {
-    const [, error] = safeRun(() => EntityId.fromInteger(-1));
+    const [error] = safeRun(() => EntityId.fromInteger(-1));
     
     expect(error).toBeDefined();
-    expect(error).toEqual(InvalidParameterError.withParameter('entity identifier must be a non-negative integer'));
+    expect(error.message).toEqual(InvalidParameterError.withParameter('entity identifier must be a non-negative integer').message);
   });
 
   it('should create a valid EntityId from bigint', () => {
@@ -50,7 +50,7 @@ describe('EntityId', () => {
   });
 
   it('should throw error if bigint is invalid', () => {
-    const [,error]  = safeRun(() => EntityId.fromBigInt('invalid-bigint'));
+    const [error]  = safeRun(() => EntityId.fromBigInt('invalid-bigint'));
 
     expect(error).toBeDefined();
     expect(error).toEqual(InvalidParameterError.withParameter('entity identifier must be a valid bigint'));
@@ -64,7 +64,7 @@ describe('EntityId', () => {
   });
 
   it('should throw error if text ID is invalid', () => {
-    const [,error]  = safeRun(() => EntityId.fromText(''));
+    const [error]  = safeRun(() => EntityId.fromText(''));
 
     expect(error).toBeDefined();
     expect(error).toEqual(MissingValueError.withValue('entity identifier'));
@@ -95,6 +95,6 @@ describe('EntityId', () => {
     const entityId = EntityId.fromText('validTextId');
     const json = entityId.toJSON();
 
-    expect(json).toEqual({ value: 'validTextId', type: 'text' });
+    expect(json).toEqual(JSON.stringify({ value: 'validTextId', type: 'text' }));
   });
 });

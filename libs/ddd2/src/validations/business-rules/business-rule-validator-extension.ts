@@ -1,5 +1,5 @@
-import { ISpecification, Specification, ValidationErrors, ValidationError } from '@/validations';
-import { Result } from '@/utils';
+import { ISpecification, Specification, ValidationErrors, ValidationError } from '../../validations';
+import { Result } from '../../utils';
 import { BusinessRuleValidator } from './business-rule-validator';
 
 /**

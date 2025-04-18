@@ -1,6 +1,6 @@
-import { Result } from '@/utils';
-import { Specification, CoreRules, RulesRegistry, SpecificationValidator, BusinessRuleValidator } from '@/validations';
-import { BusinessPolicy, createPolicyFactory } from '@/policies';
+import { Result } from '../utils';
+import { Specification, CoreRules, RulesRegistry, SpecificationValidator, BusinessRuleValidator } from '../validations';
+import { BusinessPolicy, createPolicyFactory } from '../policies';
 
 RulesRegistry.register(CoreRules);
 

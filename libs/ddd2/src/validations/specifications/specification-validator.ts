@@ -1,5 +1,5 @@
-import { Result } from '@/utils';
-import { IValidator, ValidationError, ValidationErrors } from '@/validations';
+import { Result } from '../../utils';
+import { IValidator, ValidationError, ValidationErrors } from '../../validations';
 import { ISpecification } from './specification-interface';
 
 /**

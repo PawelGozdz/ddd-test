@@ -1,4 +1,4 @@
-import { AggregateRoot, IDomainEvent, IEventBus, IEventDispatcher } from "@/core";
+import { AggregateRoot, IDomainEvent, IEventBus, IEventDispatcher } from "../../core";
 
 /**
  * Default implementation of event dispatcher

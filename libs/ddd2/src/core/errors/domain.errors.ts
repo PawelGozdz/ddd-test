@@ -1,4 +1,4 @@
-import { LibUtils } from '@app/libs/utils';
+import { LibUtils } from '../../utils';
 import { BaseError, ErrorOptions } from './base.error';
 import { DomainErrorCode } from './error.enum';
 

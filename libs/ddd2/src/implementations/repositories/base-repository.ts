@@ -1,4 +1,4 @@
-import { IEventDispatcher, AggregateRoot } from '@/core';
+import { IEventDispatcher, AggregateRoot } from '../../core';
 
 export abstract class BaseRepository{
   constructor(protected readonly eventDispatcher: IEventDispatcher) {}

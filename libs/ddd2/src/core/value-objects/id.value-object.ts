@@ -1,4 +1,4 @@
-import { LibUtils } from "@/utils";
+import { LibUtils } from "../../utils";
 import { InvalidParameterError, MissingValueError } from "../errors";
 import { BaseValueObject } from "./base-value-object";
 

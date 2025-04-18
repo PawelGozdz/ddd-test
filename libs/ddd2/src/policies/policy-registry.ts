@@ -1,4 +1,4 @@
-import { IBusinessPolicy } from '@/policies';
+import { IBusinessPolicy } from '../policies';
 
 /**
  * Registry for domain-specific business policies

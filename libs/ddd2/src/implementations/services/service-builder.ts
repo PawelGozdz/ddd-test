@@ -1,4 +1,4 @@
-import { IDomainService, IDomainServiceRegistry } from '@/core';
+import { IDomainService, IDomainServiceRegistry } from '../../core';
 
 /**
  * Builder for creating and registering domain services

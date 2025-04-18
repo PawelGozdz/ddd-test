@@ -5,7 +5,7 @@ import {
   EventHandlerFn, 
   IEventHandler, 
   isEventHandler 
-} from '@/core';
+} from '../../core';
 
 /**
  * Options for configuring the InMemoryEventBus

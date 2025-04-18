@@ -39,7 +39,7 @@ export interface IAggregateRoot<TId = string> {
 /**
  * Type for aggregate constructor parameters
  */
-export interface AggregateConstructorParams<TId> {
+export interface IAggregateConstructorParams<TId> {
   id: EntityId<TId>;
   version?: number;
 }
@@ -62,13 +62,13 @@ export interface ISnapshotable<TState = any, TMeta = {}> {
    * Creates a snapshot of the current aggregate state
    * @throws Error if snapshots are not enabled
    */
-  createSnapshot(): AggregateSnapshot<TState, TMeta>;
+  createSnapshot(): IAggregateSnapshot<TState, TMeta>;
   
   /**
    * Restores aggregate state from a snapshot
    * @throws Error if snapshots are not enabled
    */
-  restoreFromSnapshot(snapshot: AggregateSnapshot<TState, TMeta>): void;
+  restoreFromSnapshot(snapshot: IAggregateSnapshot<TState, TMeta>): void;
   
   /**
    * Serializes aggregate state for snapshots
@@ -86,7 +86,7 @@ export interface ISnapshotable<TState = any, TMeta = {}> {
 /**
  * Represents an aggregate snapshot
  */
-export interface AggregateSnapshot<TState = any, TMeta = {}> {
+export interface IAggregateSnapshot<TState = any, TMeta = {}> {
   /** Aggregate identifier */
   id: any;
   
@@ -127,7 +127,7 @@ export interface IVersioned {
    * Registers an upcaster for a specific event type and version
    * @throws Error if versioning is not enabled
    */
-  registerUpcaster(eventType: string, sourceVersion: number, upcaster: EventUpcaster): this;
+  registerUpcaster(eventType: string, sourceVersion: number, upcaster: IEventUpcaster): this;
   
   /**
    * Applies a domain event with a specific version
@@ -143,7 +143,7 @@ export interface IVersioned {
 /**
  * Interface for event upcaster
  */
-export interface EventUpcaster<TInput = any, TOutput = any> {
+export interface IEventUpcaster<TInput = any, TOutput = any> {
   /**
    * Transforms an event payload from one version to another
    */

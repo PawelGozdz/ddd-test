@@ -1,4 +1,4 @@
-import { ISpecification, BusinessRuleValidator } from '@/validations';
+import { ISpecification, BusinessRuleValidator } from '../validations';
 
 /**
  * Basic validator rule function type

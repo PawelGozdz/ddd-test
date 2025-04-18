@@ -1,5 +1,5 @@
-import { ValidationErrors } from '@/validations';
-import { Result } from '@/utils';
+import { ValidationErrors } from '../validations';
+import { Result } from '../utils';
 
 /**
  * Interface for validators

@@ -1,5 +1,5 @@
-import { IValidator, ValidationError, ValidationErrors, SpecificationValidator, BusinessRuleValidator, ISpecification, Specification } from '@/validations';
-import { Result } from '@/utils';
+import { IValidator, ValidationError, ValidationErrors, SpecificationValidator, BusinessRuleValidator, ISpecification, Specification } from '../validations';
+import { Result } from '../utils';
 
 /**
  * Fabryki i narzędzia do pracy z walidatorami i specyfikacjami

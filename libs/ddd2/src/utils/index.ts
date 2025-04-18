@@ -1,3 +1,3 @@
 export * from './result';
 export * from './lib-utils';
-export * from './testings';
+export * from './saferun';

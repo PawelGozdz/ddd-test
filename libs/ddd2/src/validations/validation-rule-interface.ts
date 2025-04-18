@@ -1,5 +1,5 @@
-import { Result } from '@/utils';
-import { ValidationError } from '@/validations';
+import { Result } from '../utils';
+import { ValidationError } from '../validations';
 
 export interface ValidationRule<T> {
   /** Prop name or path */

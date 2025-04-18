@@ -4,9 +4,9 @@ import {
   IAggregateRoot, 
   ISnapshotable, 
   IVersioned,
-  AggregateSnapshot,
-  EventUpcaster,
-  AggregateConstructorParams
+  IAggregateSnapshot,
+  IEventUpcaster,
+  IAggregateConstructorParams
 } from './aggregate-interfaces';
 
 /**
@@ -28,13 +28,13 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
   };
   
   // Storage for event upcasters (used when versioning is enabled)
-  private _eventUpcasters?: Map<string, Map<number, EventUpcaster>>;
+  private _eventUpcasters?: Map<string, Map<number, IEventUpcaster>>;
 
   /**
    * Creates a new aggregate root instance
    * @param params Construction parameters including ID and optional version
    */
-  constructor({ id, version = 0 }: AggregateConstructorParams<TId>) {
+  constructor({ id, version = 0 }: IAggregateConstructorParams<TId>) {
     this._id = id;
     this._version = version;
     this._initialVersion = version;
@@ -212,7 +212,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
    * Creates a snapshot of the current aggregate state
    * @throws Error if snapshots are not enabled or required methods are not implemented
    */
-  createSnapshot(): AggregateSnapshot<TState, TMeta> {
+  createSnapshot(): IAggregateSnapshot<TState, TMeta> {
     this._requireFeature('snapshots');
     this._requireMethod('serializeState');
     
@@ -220,7 +220,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
       ? this._domainEvents[this._domainEvents.length - 1] 
       : null;
       
-    const snapshot: AggregateSnapshot<TState, TMeta> = {
+    const snapshot: IAggregateSnapshot<TState, TMeta> = {
       id: this._id.getValue(),
       version: this._version,
       aggregateType: this.constructor.name,
@@ -241,7 +241,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
    * Restores aggregate state from a snapshot
    * @throws Error if snapshots are not enabled or required methods are not implemented
    */
-  restoreFromSnapshot(snapshot: AggregateSnapshot<TState, TMeta>): void {
+  restoreFromSnapshot(snapshot: IAggregateSnapshot<TState, TMeta>): void {
     this._requireFeature('snapshots');
     this._requireMethod('deserializeState');
     
@@ -329,7 +329,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
    * Registers an upcaster for a specific event type and version
    * @throws Error if versioning is not enabled
    */
-  registerUpcaster(eventType: string, sourceVersion: number, upcaster: EventUpcaster): this {
+  registerUpcaster(eventType: string, sourceVersion: number, upcaster: IEventUpcaster): this {
     this._requireFeature('versioning');
     
     if (!this._eventUpcasters.has(eventType)) {

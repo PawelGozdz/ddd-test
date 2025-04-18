@@ -1,5 +1,5 @@
-import { Result } from '@/utils';
-import { PolicyViolation, IBusinessPolicy } from '@/policies';
+import { Result } from '../utils';
+import { PolicyViolation, IBusinessPolicy } from '../policies';
 
 /**
  * Composite policy that combines multiple policies

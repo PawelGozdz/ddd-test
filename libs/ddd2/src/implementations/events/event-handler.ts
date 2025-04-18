@@ -4,7 +4,7 @@ import {
   EVENT_HANDLER_METADATA,
   EVENT_HANDLER_OPTIONS,
   IDomainEvent,
-} from '@/core';
+} from '../../core';
 
 /**
  * Opcje dla dekoratora EventHandler

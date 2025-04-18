@@ -1,4 +1,4 @@
-import { LibUtils } from '@/utils';
+import { LibUtils } from '../../utils';
 import { IEventMetadata, IExtendedDomainEvent } from './domain-event-interfaces';
 
 /**

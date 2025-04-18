@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 
-import { ActorError, ActorType, MissingValueError } from '@libs/common';
 
 import { Actor } from './actor.value-object';
+import { ActorType } from './actor-type.enum';
+import { MissingValueError } from '../core';
+import { ActorError } from './actor.error';
 
 describe('Actor', () => {
   describe('create', () => {

@@ -1,5 +1,5 @@
-import { InvalidParameterError, BaseValueObject, MissingValueError, ValueObjectValidator } from '@/core';
-import { LibUtils } from '@/utils';
+import { InvalidParameterError, BaseValueObject, MissingValueError } from '../core';
+import { LibUtils } from '../utils';
 
 import { ActorType } from './actor-type.enum';
 import { ActorError } from './actor.error';

@@ -1,5 +1,5 @@
 import { ISpecification } from '@/validations';
-import { Result } from '@/utils';
+import { Result } from '../utils';
 import { PolicyRegistry, BusinessPolicy, PolicyViolation, IBusinessPolicy } from '@/policies';
 
 /**

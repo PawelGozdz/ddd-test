@@ -1,9 +1,9 @@
-import { LibUtils } from '@/utils';
+import { LibUtils } from '../../utils';
 import { 
   IEventBus, 
   IDomainEvent, 
   EventBusMiddleware 
-} from '@/core';
+} from '../../core';
 
 import { InMemoryEventBus, InMemoryEventBusOptions } from './in-memory-domain-event-bus';
 

@@ -18,24 +18,9 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@app/libs": [
-        "libs/ddd2/src"
-      ],
-      "@app/libs/*": [
-        "libs/ddd2/src/*"
-      ],
-      // "@": [
-      //   "libs/ddd/src/*"
-      // ],
-      // "@/*": [
-      //   "libs/ddd/src/*"
-      // ],
-      "@": [
-        "libs/ddd2/src/*"
-      ],
-      "@/*": [
-        "libs/ddd2/src/*"
-      ]
+      "@/*": ["libs/ddd2/*"],
+      "@/utils/*": ["libs/ddd2/utils/*"],
+      "@/domain/*": ["libs/ddd2/domain/*"]
     }
   }
 }

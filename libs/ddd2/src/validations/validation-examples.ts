@@ -1,5 +1,5 @@
-import { Specification, CoreRules, RulesRegistry, Validation, SpecificationValidator, BusinessRuleValidator } from '@/validations';
-import { Result } from '@/utils';
+import { Specification, CoreRules, RulesRegistry, Validation, SpecificationValidator, BusinessRuleValidator } from '../validations';
+import { Result } from '../utils';
 
 RulesRegistry.register(CoreRules);
 

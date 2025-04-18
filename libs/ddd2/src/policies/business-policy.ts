@@ -1,6 +1,6 @@
-import { Result } from '@/utils';
-import { ISpecification, IValidator } from '@/validations';
-import { CompositePolicy, PolicyViolation, IBusinessPolicy } from '@/policies';
+import { Result } from '../utils';
+import { ISpecification, IValidator } from '../validations';
+import { CompositePolicy, PolicyViolation, IBusinessPolicy } from '../policies';
 
 /**
  * Implementation of a business policy based on a specification

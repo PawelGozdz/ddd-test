@@ -1,4 +1,4 @@
-import { Result } from '@/utils';
+import { Result } from '../utils';
 import { PolicyViolation } from './policy-violation';
 
 /**

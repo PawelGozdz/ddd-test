@@ -1,4 +1,4 @@
-import { IDomainService, IDomainServiceRegistry } from '@/core';
+import { IDomainService, IDomainServiceRegistry } from '../../core';
 import { DefaultDomainServiceRegistry } from './domain-service-registry';
 import { ServiceBuilder } from './service-builder';
 

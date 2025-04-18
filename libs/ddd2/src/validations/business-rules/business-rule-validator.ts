@@ -1,5 +1,5 @@
-import { ValidationRule, IValidator, ISpecification, ValidationError, ValidationErrors } from '@/validations';
-import { Result } from '@/utils';
+import { ValidationRule, IValidator, ISpecification, ValidationError, ValidationErrors } from '../../validations';
+import { Result } from '../../utils';
 
 export class BusinessRuleValidator<T> implements IValidator<T> {
   private rules: ValidationRule<T>[] = [];
