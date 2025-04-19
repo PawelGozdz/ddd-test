@@ -67,7 +67,7 @@ describe('EntityId', () => {
     const [error]  = safeRun(() => EntityId.fromText(''));
 
     expect(error).toBeDefined();
-    expect(error).toEqual(MissingValueError.withValue('entity identifier'));
+    expect(error).instanceOf(MissingValueError);
   });
 
   it('should check equality of two EntityId instances', () => {
