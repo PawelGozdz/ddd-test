@@ -39,6 +39,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './libs/ddd2'),
+      '@app/libs': resolve(__dirname, './libs/ddd2/src'),
       '@/utils': resolve(__dirname, './libs/ddd2/utils'),
       '@/domain': resolve(__dirname, './libs/ddd2/domain'),
     },

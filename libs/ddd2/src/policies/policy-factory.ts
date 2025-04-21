@@ -1,6 +1,6 @@
-import { ISpecification } from '@/validations';
+import { ISpecification } from '../validations';
 import { Result } from '../utils';
-import { PolicyRegistry, BusinessPolicy, PolicyViolation, IBusinessPolicy } from '@/policies';
+import { PolicyRegistry, BusinessPolicy, PolicyViolation, IBusinessPolicy } from '../policies';
 
 /**
  * Helper for creating domain-specific policy factories

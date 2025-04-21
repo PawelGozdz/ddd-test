@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, MetadataScanner } from '@nestjs/core';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
-import { EVENT_HANDLER_METADATA, EventHandlerFn, IEventBus, IEventHandler } from '@app/libs';
+import { EVENT_HANDLER_METADATA, EventHandlerFn, IEventBus, IEventHandler } from '@/src';
 
 /**
  * Adapter EventBusa dla NestJS

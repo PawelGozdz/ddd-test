@@ -19,6 +19,8 @@
     "noFallthroughCasesInSwitch": false,
     "paths": {
       "@/*": ["libs/ddd2/*"],
+      "@app/libs": ["libs/ddd2/src"],
+      "@app/libs/*": ["libs/ddd2/src/*"],
       "@/utils/*": ["libs/ddd2/utils/*"],
       "@/domain/*": ["libs/ddd2/domain/*"]
     }
