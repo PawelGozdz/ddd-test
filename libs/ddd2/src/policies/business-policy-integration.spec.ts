@@ -1,4 +1,4 @@
-import { BusinessPolicy, CompositePolicy, PolicyRegistry, createPolicyFactory } from '../policies';
+import { BusinessPolicy, PolicyRegistry, createPolicyFactory } from '../policies';
 import { safeRun } from '../utils';
 import { Specification } from '../validations';
 
