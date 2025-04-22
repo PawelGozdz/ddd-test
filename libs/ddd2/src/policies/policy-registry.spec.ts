@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { PolicyRegistry, BusinessPolicy } from '../policies';
 import { ISpecification } from '../validations';
 import { safeRun } from '../utils';
-import e from 'express';
 
 /**
  * Unit tests for PolicyRegistry class

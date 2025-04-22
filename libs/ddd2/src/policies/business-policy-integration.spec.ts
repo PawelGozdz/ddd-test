@@ -1,4 +1,5 @@
 import { BusinessPolicy, CompositePolicy, PolicyRegistry, createPolicyFactory } from '../policies';
+import { safeRun } from '../utils';
 import { Specification } from '../validations';
 
 
@@ -187,15 +188,6 @@ describe('Business Policy Integration', () => {
       expect(userFactory.get('adult').isSatisfiedBy(user)).toBe(true);
       expect(userFactory.get('active').isSatisfiedBy(user)).toBe(true);
       expect(productFactory.get('validPrice').isSatisfiedBy(product)).toBe(true);
-      
-      // Using safeRun helper function for testing exceptions
-      const safeRun = <T>(fn: () => T): [Error | null, T | null] => {
-        try {
-          return [null, fn()];
-        } catch (error) {
-          return [error as Error, null];
-        }
-      };
       
       const [error1] = safeRun(() => userFactory.get('validPrice'));
       expect(error1).not.toBeNull();
