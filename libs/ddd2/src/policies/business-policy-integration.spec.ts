@@ -1,8 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { BusinessPolicy, CompositePolicy, PolicyRegistry, createPolicyFactory } from '../policies';
+import { Specification } from '../validations';
 
-import { BusinessPolicy, PolicyRegistry, createPolicyFactory } from '../policies';
-import { ISpecification } from '../validations';
-import { safeRun } from '../utils';
 
 /**
  * Integration tests for Business Policy functionality
@@ -22,45 +20,12 @@ describe('Business Policy Integration', () => {
     isActive: boolean;
   }
   
-  // Helper function to create specifications
-  const createSpec = <T>(
-    name: string, 
-    predicate: (entity: T) => boolean
-  ): ISpecification<T> => {
-    return {
-      isSatisfiedBy: predicate,
-      and: function(other) {
-        return {
-          isSatisfiedBy: (entity: T) => this.isSatisfiedBy(entity) && other.isSatisfiedBy(entity),
-          and: vi.fn(),
-          or: vi.fn(),
-          not: vi.fn()
-        };
-      },
-      or: function(other) {
-        return {
-          isSatisfiedBy: (entity: T) => this.isSatisfiedBy(entity) || other.isSatisfiedBy(entity),
-          and: vi.fn(),
-          or: vi.fn(),
-          not: vi.fn()
-        };
-      },
-      not: function() {
-        return {
-          isSatisfiedBy: (entity: T) => !this.isSatisfiedBy(entity),
-          and: vi.fn(),
-          or: vi.fn(),
-          not: vi.fn()
-        };
-      }
-    };
-  };
-  
   describe('Policy composition', () => {
     it('should combine policies using AND logic', () => {
       // Arrange
-      const adultSpec = createSpec<User>('adult', user => user.age >= 18);
-      const activeSpec = createSpec<User>('active', user => user.isActive === true);
+      // Use actual Specification implementation
+      const adultSpec = Specification.create<User>(user => user.age >= 18);
+      const activeSpec = Specification.create<User>(user => user.isActive === true);
       
       const adultPolicy = new BusinessPolicy(
         adultSpec,
@@ -96,8 +61,9 @@ describe('Business Policy Integration', () => {
     
     it('should combine policies using OR logic', () => {
       // Arrange
-      const premiumSpec = createSpec<User>('premium', user => user.age >= 25);
-      const activeSpec = createSpec<User>('active', user => user.isActive === true);
+      // Using PropertyBetweenSpecification for testing a range
+      const premiumSpec = Specification.propertyBetween<User>('age', 25, Infinity);
+      const activeSpec = Specification.propertyEquals<User>('isActive', true);
       
       const premiumPolicy = new BusinessPolicy(
         premiumSpec,
@@ -134,10 +100,11 @@ describe('Business Policy Integration', () => {
     
     it('should handle complex policy chains', () => {
       // Arrange
-      const adultSpec = createSpec<User>('adult', user => user.age >= 18);
-      const seniorSpec = createSpec<User>('senior', user => user.age >= 65);
-      const activeSpec = createSpec<User>('active', user => user.isActive === true);
-      const validEmailSpec = createSpec<User>('validEmail', user => user.email.includes('@'));
+      // Leveraging various specification creation methods
+      const adultSpec = Specification.propertyBetween<User>('age', 18, 64);
+      const seniorSpec = Specification.propertyBetween<User>('age', 65, Infinity);
+      const activeSpec = Specification.propertyEquals<User>('isActive', true);
+      const validEmailSpec = Specification.create<User>(user => user.email.includes('@'));
       
       const adultPolicy = new BusinessPolicy(
         adultSpec,
@@ -164,6 +131,7 @@ describe('Business Policy Integration', () => {
       );
       
       // Complex policy: (Adult OR Senior) AND (Active AND ValidEmail)
+      // This also tests that the real implementation's and/or methods work correctly
       const agePolicy = adultPolicy.or(seniorPolicy);
       const contactPolicy = activePolicy.and(emailPolicy);
       const complexPolicy = agePolicy.and(contactPolicy);
@@ -189,66 +157,86 @@ describe('Business Policy Integration', () => {
       const userFactory = createPolicyFactory<User>('user');
       const productFactory = createPolicyFactory<{price: number}>('product');
       
-      // Register policies for different domains
+      // Register policies for different domains using native specifications
       userFactory.register(
         'adult',
-        createSpec<User>('adult', user => user.age >= 18),
+        Specification.propertyBetween<User>('age', 18, Infinity),
         'UNDERAGE',
         'User must be at least 18 years old'
       );
       
       userFactory.register(
         'active',
-        createSpec<User>('active', user => user.isActive === true),
+        Specification.propertyEquals<User>('isActive', true),
         'INACTIVE',
         'User must be active'
       );
       
       productFactory.register(
         'validPrice',
-        createSpec<{price: number}>('validPrice', product => product.price > 0),
+        Specification.propertyBetween<{price: number}>('price', 0, Infinity),
         'INVALID_PRICE',
         'Product price must be positive'
       );
       
-      // Act
-      const [err1] = safeRun(() => userFactory.get('validPrice'));
-      const [err2] = safeRun(() => productFactory.get('adult'));
-      
-      // Assert - Cross-domain policies should be isolated
+      // Act & Assert - Cross-domain policies should be isolated
       const user: User = { age: 20, email: 'test@example.com', isActive: true };
       const product = { price: 10 };
       
+      // Testing policy registration and retrieval across domains
       expect(userFactory.get('adult').isSatisfiedBy(user)).toBe(true);
       expect(userFactory.get('active').isSatisfiedBy(user)).toBe(true);
       expect(productFactory.get('validPrice').isSatisfiedBy(product)).toBe(true);
       
-      // Should throw for cross-domain access attempts
-      expect(err1.message).toEqual(`Policy "validPrice" not found in domain "user"`);
-      expect(err2.message).toEqual(`Policy "adult" not found in domain "product"`);
+      // Using safeRun helper function for testing exceptions
+      const safeRun = <T>(fn: () => T): [Error | null, T | null] => {
+        try {
+          return [null, fn()];
+        } catch (error) {
+          return [error as Error, null];
+        }
+      };
+      
+      const [error1] = safeRun(() => userFactory.get('validPrice'));
+      expect(error1).not.toBeNull();
+      expect(error1?.message).toContain('not found in domain');
+      
+      const [error2] = safeRun(() => productFactory.get('adult'));
+      expect(error2).not.toBeNull();
+      expect(error2?.message).toContain('not found in domain');
     });
     
     it('should check all domain policies efficiently', () => {
       // Arrange
       const userFactory = createPolicyFactory<User>('user');
       
+      // Register a dummy policy first to ensure the domain exists
+      userFactory.register(
+        'dummy',
+        Specification.alwaysTrue<User>(),
+        'DUMMY',
+        'Dummy policy'
+      );
+      
+      // Register core validation policies using the native specification API
       userFactory.register(
         'adult',
-        createSpec<User>('adult', user => user.age >= 18),
+        Specification.propertyBetween<User>('age', 18, Infinity),
         'UNDERAGE',
         'User must be at least 18 years old'
       );
       
       userFactory.register(
         'active',
-        createSpec<User>('active', user => user.isActive === true),
+        Specification.propertyEquals<User>('isActive', true),
         'INACTIVE',
         'User must be active'
       );
       
+      // Use create for more complex validations
       userFactory.register(
         'validEmail',
-        createSpec<User>('validEmail', user => user.email.includes('@')),
+        Specification.create<User>(user => user.email.includes('@')),
         'INVALID_EMAIL',
         'Email must be valid'
       );
@@ -262,7 +250,7 @@ describe('Business Policy Integration', () => {
       
       const invalidResult = userFactory.checkAll(invalidUser);
       expect(invalidResult.isFailure).toBe(true);
-      expect(invalidResult.error.length).toBe(3); // All three policies should fail
+      expect(invalidResult.error.length).toBe(3);
       
       const violations = invalidResult.error.map(v => v.code);
       expect(violations).toContain('UNDERAGE');

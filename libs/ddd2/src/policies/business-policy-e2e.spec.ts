@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
-import {  createPolicyFactory, PolicyRegistry } from '../policies';
-import { ISpecification } from '../validations';
+import { createPolicyFactory, PolicyRegistry } from '../policies';
+import { 
+  Specification,
+  CompositeSpecification,
+} from '../validations';
 
 /**
  * End-to-end tests for Business Policy functionality
@@ -48,69 +49,41 @@ describe('Business Policy E2E', () => {
     country: string;
   }
   
-  // Helper function to create specifications
-  const createSpec = <T>(
-    predicate: (entity: T) => boolean
-  ): ISpecification<T> => {
-    return {
-      isSatisfiedBy: predicate,
-      and(other) {
-        const self = this;
-        return {
-          isSatisfiedBy: (entity: T) => self.isSatisfiedBy(entity) && other.isSatisfiedBy(entity),
-          and: vi.fn(),
-          or: vi.fn(),
-          not: vi.fn()
-        };
-      },
-      or(other) {
-        const self = this;
-        return {
-          isSatisfiedBy: (entity: T) => self.isSatisfiedBy(entity) || other.isSatisfiedBy(entity),
-          and: vi.fn(),
-          or: vi.fn(),
-          not: vi.fn()
-        };
-      },
-      not() {
-        const self = this;
-        return {
-          isSatisfiedBy: (entity: T) => !self.isSatisfiedBy(entity),
-          and: vi.fn(),
-          or: vi.fn(),
-          not: vi.fn()
-        };
-      }
-    };
-  };
-  
   describe('User Registration and Account Management', () => {
     it('should validate user registration requirements', () => {
       // Arrange
       const userPolicyFactory = createPolicyFactory<User>('user');
       
-      // Define user validation policies
+      // Define user validation policies using different specification types
+      
+      // Using PropertyBetweenSpecification for age validation
       userPolicyFactory.register(
         'adultUser',
-        createSpec<User>(user => user.age >= 18),
+        Specification.propertyBetween<User>('age', 18, Infinity),
         'UNDERAGE_USER',
         'User must be at least 18 years old',
         user => ({ providedAge: user.age, minimumAge: 18 })
       );
       
+      // Using PredicateSpecification with regex for email validation
       userPolicyFactory.register(
         'validEmail',
-        createSpec<User>(user => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)),
+        Specification.create<User>(user => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)),
         'INVALID_EMAIL',
         'Email must be in a valid format'
       );
       
+      // Create a custom specification for name validation
+      class NameProvidedSpecification extends CompositeSpecification<User> {
+        isSatisfiedBy(user: User): boolean {
+          return !!user.firstName && user.firstName.trim().length > 0 &&
+                 !!user.lastName && user.lastName.trim().length > 0;
+        }
+      }
+      
       userPolicyFactory.register(
         'nameProvided',
-        createSpec<User>(user => 
-          !!user.firstName && user.firstName.trim().length > 0 &&
-          !!user.lastName && user.lastName.trim().length > 0
-        ),
+        new NameProvidedSpecification(),
         'MISSING_NAME',
         'First and last name must be provided'
       );
@@ -162,25 +135,31 @@ describe('Business Policy E2E', () => {
       const userPolicyFactory = createPolicyFactory<User>('user');
       const adminPolicyFactory = createPolicyFactory<User>('admin');
       
-      // Regular user policies
+      // Regular user policies with real specification implementation
       userPolicyFactory.register(
         'adultUser',
-        createSpec<User>(user => user.age >= 18),
+        Specification.propertyBetween<User>('age', 18, Infinity),
         'UNDERAGE_USER',
         'User must be at least 18 years old'
       );
       
       // Admin-specific policies
+      // Using PropertyInSpecification to check if 'admin' is in the roles array
       adminPolicyFactory.register(
         'isAdmin',
-        createSpec<User>(user => user.roles.includes('admin')),
+        Specification.create<User>(user => user.roles.includes('admin')),
         'NOT_ADMIN',
         'User must have admin role'
       );
       
+      // Using a combined specification for admin age requirements
+      const ageAtLeast21 = Specification.propertyBetween<User>('age', 21, Infinity);
+      const hasAdminRole = Specification.create<User>(user => user.roles.includes('admin'));
+      
+      // Only apply the age restriction to users with admin role
       adminPolicyFactory.register(
         'minimumAge',
-        createSpec<User>(user => user.age >= 21),
+        ageAtLeast21,
         'ADMIN_TOO_YOUNG',
         'Admin must be at least 21 years old'
       );
@@ -240,26 +219,34 @@ describe('Business Policy E2E', () => {
       // Arrange
       const orderPolicyFactory = createPolicyFactory<Order>('order');
       
-      // Order validation policies
+      // Order validation policies using real specifications
+      
+      // Using PredicateSpecification to check if order has items
       orderPolicyFactory.register(
         'hasItems',
-        createSpec<Order>(order => order.items.length > 0),
+        Specification.create<Order>(order => order.items.length > 0),
         'EMPTY_ORDER',
         'Order must contain at least one item'
       );
       
+      // Using PropertyBetweenSpecification for amount validation
       orderPolicyFactory.register(
         'positiveAmount',
-        createSpec<Order>(order => order.totalAmount > 0),
+        Specification.propertyBetween<Order>('totalAmount', 0.01, Infinity),
         'INVALID_AMOUNT',
         'Order total amount must be positive'
       );
       
+      // Creating a custom specification for validating order items
+      class ValidItemsSpecification extends CompositeSpecification<Order> {
+        isSatisfiedBy(order: Order): boolean {
+          return order.items.every(item => item.quantity > 0 && item.unitPrice > 0);
+        }
+      }
+      
       orderPolicyFactory.register(
         'validItems',
-        createSpec<Order>(order => order.items.every(item => 
-          item.quantity > 0 && item.unitPrice > 0
-        )),
+        new ValidItemsSpecification(),
         'INVALID_ITEMS',
         'All order items must have positive quantity and price',
         order => ({
@@ -273,14 +260,35 @@ describe('Business Policy E2E', () => {
         })
       );
       
+      // Creating a specification for address validation
+      class CompleteAddressSpecification extends CompositeSpecification<Order> {
+        isSatisfiedBy(order: Order): boolean {
+          const address = order.shippingAddress;
+          return !!address.street && 
+                 !!address.city && 
+                 !!address.zipCode && 
+                 !!address.country;
+        }
+        
+        // Optional implementation of explainFailure method (defined in ISpecification)
+        explainFailure(order: Order): string | null {
+          const address = order.shippingAddress;
+          const missingFields = [];
+          
+          if (!address.street) missingFields.push('street');
+          if (!address.city) missingFields.push('city');
+          if (!address.zipCode) missingFields.push('zipCode');
+          if (!address.country) missingFields.push('country');
+          
+          if (missingFields.length === 0) return null;
+          
+          return `Missing required address fields: ${missingFields.join(', ')}`;
+        }
+      }
+      
       orderPolicyFactory.register(
         'completeAddress',
-        createSpec<Order>(order => 
-          !!order.shippingAddress.street &&
-          !!order.shippingAddress.city &&
-          !!order.shippingAddress.zipCode &&
-          !!order.shippingAddress.country
-        ),
+        new CompleteAddressSpecification(),
         'INCOMPLETE_ADDRESS',
         'Shipping address must be complete',
         order => ({
@@ -358,21 +366,23 @@ describe('Business Policy E2E', () => {
     it('should enforce order transition policies', () => {
       // Arrange
       const orderTransitionFactory = createPolicyFactory<{order: Order, newStatus: string}>('orderTransition');
+      class ValidTransitionSpecification extends CompositeSpecification<{order: Order, newStatus: string}> {
+        private readonly validTransitions: Record<string, string[]> = {
+          'pending': ['paid', 'cancelled'],
+          'paid': ['shipped', 'cancelled'],
+          'shipped': ['delivered'],
+          'delivered': [],
+          'cancelled': []
+        };
+        
+        isSatisfiedBy(data: {order: Order, newStatus: string}): boolean {
+          return this.validTransitions[data.order.status]?.includes(data.newStatus) || false;
+        }
+      }
       
-      // Order transition policies
       orderTransitionFactory.register(
         'validTransition',
-        createSpec<{order: Order, newStatus: string}>(({ order, newStatus }) => {
-          const validTransitions: Record<string, string[]> = {
-            'pending': ['paid', 'cancelled'],
-            'paid': ['shipped', 'cancelled'],
-            'shipped': ['delivered'],
-            'delivered': [],
-            'cancelled': []
-          };
-          
-          return validTransitions[order.status]?.includes(newStatus) || false;
-        }),
+        new ValidTransitionSpecification(),
         'INVALID_TRANSITION',
         'Invalid order status transition',
         ({ order, newStatus }) => ({
@@ -388,22 +398,21 @@ describe('Business Policy E2E', () => {
         })
       );
       
-      // Composite policy for paid orders
-      const paidOrderSpec = createSpec<{order: Order, newStatus: string}>(
-        ({ order }) => order.status === 'paid'
-      );
-      
-      const atLeastOneDayOldSpec = createSpec<{order: Order, newStatus: string}>(
-        ({ order }) => {
+      class PaidOrderDelaySpecification extends CompositeSpecification<{order: Order, newStatus: string}> {
+        isSatisfiedBy(data: {order: Order, newStatus: string}): boolean {
+          if (!(data.order.status === 'paid' && data.newStatus === 'shipped')) {
+            return true;
+          }
+          
           const oneDayAgo = new Date();
           oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-          return order.createdAt < oneDayAgo;
+          return data.order.createdAt < oneDayAgo;
         }
-      );
+      }
       
       orderTransitionFactory.register(
         'paidOrderDelay',
-        paidOrderSpec.and(atLeastOneDayOldSpec),
+        new PaidOrderDelaySpecification(),
         'PAID_ORDER_TOO_RECENT',
         'Paid orders must be at least one day old before shipping',
         ({ order }) => ({
@@ -412,7 +421,6 @@ describe('Business Policy E2E', () => {
         })
       );
       
-      // Act
       const yesterdayDate = new Date();
       yesterdayDate.setDate(yesterdayDate.getDate() - 2);
       
@@ -430,7 +438,7 @@ describe('Business Policy E2E', () => {
         ...pendingOrder,
         id: 'order2',
         status: 'paid',
-        createdAt: new Date() // Today
+        createdAt: new Date()
       };
       
       const olderPaidOrder: Order = {
@@ -441,16 +449,26 @@ describe('Business Policy E2E', () => {
       };
       
       // Assert
-      // Valid transitions
-      expect(orderTransitionFactory.checkAll({ order: pendingOrder, newStatus: 'paid' }).isSuccess).toBe(true);
-      expect(orderTransitionFactory.checkAll({ order: olderPaidOrder, newStatus: 'shipped' }).isSuccess).toBe(true);
+      expect(orderTransitionFactory.checkAll({ 
+        order: pendingOrder, 
+        newStatus: 'paid' 
+      }).isSuccess).toBe(true);
       
-      // Invalid transitions
-      expect(orderTransitionFactory.checkAll({ order: pendingOrder, newStatus: 'shipped' }).isFailure).toBe(true);
-      expect(orderTransitionFactory.checkAll({ order: recentPaidOrder, newStatus: 'shipped' }).isFailure).toBe(true);
+      expect(orderTransitionFactory.checkAll({ 
+        order: olderPaidOrder, 
+        newStatus: 'shipped' 
+      }).isSuccess).toBe(true);
       
-      // Check violation details
-      const recentPaidResult = orderTransitionFactory.checkAll({ order: recentPaidOrder, newStatus: 'shipped' });
+      expect(orderTransitionFactory.checkAll({ 
+        order: pendingOrder, 
+        newStatus: 'shipped' 
+      }).isFailure).toBe(true);
+      
+      const recentPaidResult = orderTransitionFactory.checkAll({ 
+        order: recentPaidOrder, 
+        newStatus: 'shipped' 
+      });
+      
       expect(recentPaidResult.isFailure).toBe(true);
       
       const ageViolation = recentPaidResult.error.find(v => v.code === 'PAID_ORDER_TOO_RECENT');

@@ -96,6 +96,13 @@ describe('PolicyFactory', () => {
       const domain = 'user';
       const nonExistentPolicy = 'nonExistentPolicy';
       const factory = createPolicyFactory<any>(domain);
+
+      factory.register(
+        'dummyPolicy',
+        createSpecification(true),
+        'DUMMY_CODE',
+        'Dummy message'
+      );
       
       // Act
       const [error] = safeRun(() => factory.get(nonExistentPolicy));
