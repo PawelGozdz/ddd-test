@@ -21,18 +21,17 @@ export class BusinessRuleValidatorExtension<T> {
    * Validates an object using additional specifications
    */
   validateWithSpecifications(value: T, ...specs: ISpecification<T>[]): Result<T, ValidationErrors> {
-    // First validate with the rules of this validator
-    const result = this.validator.validate(value);
-    if (result.isFailure) {
-      return result;
-    }
+    const allErrors: ValidationError[] = [];
     
-    // Then validate with specifications
-    const errors: ValidationError[] = [];
+    // First validate with the rules of this validator
+    const validatorResult = this.validator.validate(value);
+    if (validatorResult.isFailure) {
+      allErrors.push(...validatorResult.error.errors);
+    }
     
     for (const spec of specs) {
       if (!spec.isSatisfiedBy(value)) {
-        errors.push(new ValidationError(
+        allErrors.push(new ValidationError(
           '',  // No specific property
           'Object does not satisfy specification',
           { specification: spec }
@@ -40,8 +39,8 @@ export class BusinessRuleValidatorExtension<T> {
       }
     }
     
-    if (errors.length > 0) {
-      return Result.fail(new ValidationErrors(errors));
+    if (allErrors.length > 0) {
+      return Result.fail(new ValidationErrors(allErrors));
     }
     
     return Result.ok(value);

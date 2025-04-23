@@ -138,7 +138,12 @@ export class BusinessRuleValidator<T> implements IValidator<T> {
     condition: (value: T) => boolean,
     thenValidator: (validator: BusinessRuleValidator<T>) => void
   ): BusinessRuleValidator<T> {
+    if (typeof condition !== 'function') {
+      throw new Error('Condition must be a function');
+    }
+
     this.lastCondition = condition;
+    
     const conditionalValidator = new BusinessRuleValidator<T>();
     thenValidator(conditionalValidator);
     
@@ -158,11 +163,20 @@ export class BusinessRuleValidator<T> implements IValidator<T> {
   otherwise(
     elseValidator: (validator: BusinessRuleValidator<T>) => void
   ): BusinessRuleValidator<T> {
-    if (this.lastCondition === null) {
-      throw new Error('Cannot call otherwise() without a preceding when()');
+    if (this.lastCondition === null || this.lastCondition === undefined) {
+      throw new Error('Cannot call otherwise() without a preceding when() - lastCondition is null/undefined');
     }
     
-    const negatedCondition = (value: T) => !this.lastCondition!(value);
+    if (typeof this.lastCondition !== 'function') {
+      throw new Error(`Cannot call otherwise() - lastCondition is not a function but a ${typeof this.lastCondition}`);
+    }
+
+    // Create a safe reference to the condition function
+    const lastConditionFn = this.lastCondition;
+    
+    // Define negatedCondition using the reference to avoid 'this' binding issues
+    const negatedCondition = (value: T) => !lastConditionFn(value);
+
     const elseConditionalValidator = new BusinessRuleValidator<T>();
     elseValidator(elseConditionalValidator);
     
