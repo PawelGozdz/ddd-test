@@ -1,5 +1,6 @@
 import { createDomainEvent, IDomainEvent, IExtendedDomainEvent, IEventMetadata } from '../events';
 import { EntityId } from '../value-objects';
+import { AggregateError } from './aggregate-errors';
 import { 
   IAggregateRoot, 
   ISnapshotable, 
@@ -106,7 +107,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
       domainEvent = domainEventOrType;
       eventMetadata = (payloadOrMetadata as Partial<IEventMetadata>) || {};
     } else {
-      throw new Error('Invalid arguments for apply method');
+      throw AggregateError.invalidArguments('Invalid arguments for apply method');
     }
 
     // Enrich the event with aggregate metadata
@@ -182,9 +183,11 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
    */
   checkVersion(expectedVersion: number): void {
     if (this._initialVersion !== expectedVersion) {
-      throw new Error(
-        `Version conflict: Aggregate ${this.constructor.name} with ID ${this._id} ` +
-        `has version ${this._initialVersion}, but expected ${expectedVersion}`
+      throw AggregateError.versionConflict(
+        this.constructor.name,
+        this._id.getValue(),
+        this._initialVersion,
+        expectedVersion
       );
     }
   }
@@ -246,23 +249,17 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
     this._requireMethod('deserializeState');
     
     if (!snapshot || !snapshot.state) {
-      throw new Error(`Invalid snapshot for aggregate ${this.constructor.name}`);
+      throw AggregateError.invalidSnapshot(this.constructor.name);
     }
 
     // Verify identifier
     if (snapshot.id !== this._id.getValue()) {
-      throw new Error(
-        `ID mismatch: Snapshot is for ID ${snapshot.id}, ` +
-        `but aggregate has ID ${this._id.getValue()}`
-      );
+      throw AggregateError.idMismatch(snapshot.id, this._id.getValue());
     }
 
     // Verify aggregate type
     if (snapshot.aggregateType !== this.constructor.name) {
-      throw new Error(
-        `Aggregate type mismatch: Snapshot is for type ${snapshot.aggregateType}, ` +
-        `but trying to load into ${this.constructor.name}`
-      );
+      throw AggregateError.typeMismatch(snapshot.aggregateType, this.constructor.name);
     }
 
     // Restore state
@@ -294,7 +291,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
    * when snapshots are enabled
    */
   serializeState(): TState {
-    throw new Error(`Method 'serializeState' must be implemented by ${this.constructor.name} to use snapshots`);
+    throw AggregateError.methodNotImplemented('serializeState', this.constructor.name);
   }
   
   /**
@@ -302,7 +299,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
    * when snapshots are enabled
    */
   deserializeState(state: TState): void {
-    throw new Error(`Method 'deserializeState' must be implemented by ${this.constructor.name} to use snapshots`);
+    throw AggregateError.methodNotImplemented('deserializeState', this.constructor.name);
   }
 
   // ==========================================
@@ -340,7 +337,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
     
     // Check if upcaster for this version already exists
     if (typeUpcasters.has(sourceVersion)) {
-      throw new Error(`Upcaster for event ${eventType} version ${sourceVersion} already exists`);
+      throw AggregateError.duplicateUpcaster(eventType, sourceVersion);
     }
     
     typeUpcasters.set(sourceVersion, upcaster);
@@ -424,9 +421,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
       const upcaster = typeUpcasters.get(currentVersion);
       
       if (!upcaster) {
-        throw new Error(
-          `Missing upcaster for event ${eventType} from version ${currentVersion} to ${currentVersion + 1}`
-        );
+        throw AggregateError.missingUpcaster(eventType, currentVersion, currentVersion + 1);
       }
       
       currentPayload = upcaster.upcast(currentPayload, currentMetadata);
@@ -471,7 +466,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
    */
   private _requireFeature(feature: keyof typeof this._features): void {
     if (!this._features[feature]) {
-      throw new Error(`Feature '${feature}' is not enabled on aggregate ${this.constructor.name}`);
+      throw AggregateError.featureNotEnabled(feature, this.constructor.name);
     }
   }
   
@@ -481,7 +476,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
   private _requireMethod(methodName: string): void {
     if (typeof this[methodName] !== 'function' || 
         this[methodName] === AggregateRoot.prototype[methodName]) {
-      throw new Error(`Method '${methodName}' must be implemented by ${this.constructor.name}`);
+      throw AggregateError.methodNotImplemented(methodName, this.constructor.name);
     }
   }
 }
