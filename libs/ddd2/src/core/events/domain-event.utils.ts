@@ -1,3 +1,4 @@
+import { LibUtils } from '../../utils';
 import { IExtendedDomainEvent, IEventMetadata } from './domain-event-interfaces';
 
 /**
@@ -16,7 +17,7 @@ export function createDomainEvent<P = any>(
     eventType,
     payload,
     metadata: {
-      eventId: crypto.randomUUID(),
+      eventId: LibUtils.getUUID(),
       timestamp: new Date(),
       ...metadata
     }

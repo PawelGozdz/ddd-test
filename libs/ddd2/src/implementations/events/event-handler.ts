@@ -108,28 +108,3 @@ export function EventHandler<T extends IDomainEvent>(
     }
   };
 }
-
-// export function EventHandler<T extends IDomainEvent>(eventType: new (...args: any[]) => T) {
-//   return function(
-//     target: any,
-//     propertyKey?: string | symbol,
-//     descriptor?: TypedPropertyDescriptor<any>
-//   ) {
-//     const metadata = { eventType };
-    
-//     if (propertyKey !== undefined && descriptor !== undefined) {
-//       Reflect.defineMetadata(EVENT_HANDLER_METADATA, metadata, descriptor.value);
-//       return descriptor;
-//     } else {
-//       Reflect.defineMetadata(EVENT_HANDLER_METADATA, metadata, target);
-      
-//       if (!target.prototype.getEventType) {
-//         target.prototype.getEventType = function() {
-//           return eventType;
-//         };
-//       }
-      
-//       return target;
-//     }
-//   };
-// }

@@ -1,7 +1,8 @@
 import { LibUtils } from '../../utils';
 import { 
   IEventBus, 
-  IDomainEvent, 
+  IDomainEvent,
+  IExtendedDomainEvent,
   EventBusMiddleware 
 } from '../../core';
 
@@ -63,12 +64,16 @@ export class EventBusBuilder {
    */
   withCorrelation(): EventBusBuilder {
     return this.withMiddleware(next => async event => {
-      // Only modify events with metadata
+      // Check if this is an extended event with metadata
       if ('metadata' in event) {
-        const eventWithMetadata = event as any;
-        if (eventWithMetadata.metadata && !eventWithMetadata.metadata.correlationId) {
-          // Generate a correlation ID if missing
-          eventWithMetadata.metadata.correlationId = LibUtils.getUUID();
+        const extendedEvent = event as IExtendedDomainEvent;
+        // Initialize metadata if needed
+        if (!extendedEvent.metadata) {
+          extendedEvent.metadata = {};
+        }
+        // Generate a correlation ID if missing
+        if (!extendedEvent.metadata.correlationId) {
+          extendedEvent.metadata.correlationId = LibUtils.getUUID();
         }
       }
       await next(event);
