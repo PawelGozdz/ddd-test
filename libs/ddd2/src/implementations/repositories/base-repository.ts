@@ -1,4 +1,4 @@
-import { IEventDispatcher, AggregateRoot } from '../../core';
+import { IEventDispatcher, AggregateRoot, VersionError } from '../../core';
 
 export abstract class BaseRepository{
   constructor(protected readonly eventDispatcher: IEventDispatcher) {}
@@ -6,25 +6,32 @@ export abstract class BaseRepository{
   async save(aggregate: AggregateRoot): Promise<void> {
     
     const events = aggregate.getDomainEvents();
-    
-    for (const event of events) {
+
+    if(events.length === 0) return;
 
     const currentVersion = await this.getCurrentVersion(aggregate.getId()) ?? 0;
-    if (aggregate.getVersion() - currentVersion !== 1 ) {
-      throw new Error(`Version mismatch: expected ${currentVersion}, got ${aggregate.getVersion() - aggregate.getDomainEvents().length}`);
+    const initialVersion = aggregate.getInitialVersion();
+
+    if (initialVersion !== currentVersion) {
+      throw VersionError.withEntityIdAndVersions(
+        aggregate.getId(),
+        currentVersion,
+        initialVersion
+      );
     }
 
-    const handlerName = `handle${event.eventType}`;
-    const handler = (this as any)[handlerName];
-
-    if (typeof handler !== 'function') {
-      throw new Error(`Missing handler ${handlerName} in repository ${this.constructor.name}`);
+    for(let i = 0; i < events.length; i++) {
+      const handlerName = `handle${events[i].eventType}`;
+      const handler = (this as any)[handlerName];
+      
+      if (typeof handler !== 'function') {
+        throw new Error(`Missing handler ${handlerName} in repository ${this.constructor.name}`);
+      }
+      
+      await handler.call(this, events[i].payload);
     }
-
-    await handler.call(this, event.payload);
-  }
   
-  await this.eventDispatcher.dispatchEventsForAggregate(aggregate);
+    await this.eventDispatcher.dispatchEventsForAggregate(aggregate);
   }
   
   abstract getCurrentVersion(id: any): Promise<number>;

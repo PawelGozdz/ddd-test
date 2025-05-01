@@ -73,3 +73,14 @@ export class DuplicateError extends DomainError {
     return new DuplicateError(message, options);
   }
 }
+
+export class VersionError extends DomainError {
+  static withEntityIdAndVersions(id: any, dbVersion: any, newVersion: any, data?: DomainErrorOptions): DuplicateError {
+    const message = `Version mismatch for entity with id ${id}: expected [${dbVersion}], got [${newVersion}]`;
+    const options = {
+      code: DomainErrorCode.ValidationFailed,
+      data,
+    };
+    return new VersionError(message, options);
+  }
+}

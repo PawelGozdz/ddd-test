@@ -172,7 +172,7 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
     // Apply each historical event
     for (const event of events) {
       this._handleEvent(event);
-      this._version++;
+      this._incrementVersion();
     }
     
     this._initialVersion = this._version;
