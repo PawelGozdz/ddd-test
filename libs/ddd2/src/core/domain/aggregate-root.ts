@@ -110,6 +110,8 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
       throw AggregateError.invalidArguments('Invalid arguments for apply method');
     }
 
+    this._incrementVersion();
+
     // Enrich the event with aggregate metadata
     const enrichedEvent: IExtendedDomainEvent<P> = {
       ...domainEvent,
@@ -118,12 +120,11 @@ export class AggregateRoot<TId = string, TState = any, TMeta = {}>
         ...eventMetadata,
         aggregateId: this._id.getValue(),
         aggregateType: this.constructor.name,
-        aggregateVersion: this._version + 1
+        aggregateVersion: this._version,
       }
     };
     
     this._domainEvents.push(enrichedEvent);
-    this._incrementVersion();
     
     // Handle the event - potentially using versioning if enabled
     this._handleEvent(enrichedEvent);

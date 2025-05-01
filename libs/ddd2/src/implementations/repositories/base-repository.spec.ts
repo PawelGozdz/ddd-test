@@ -52,11 +52,6 @@ class TestAggregate extends AggregateRoot<string> {
     return [...this._items];
   }
 
-  // commit() {
-  //   this['_domainEvents'] = [];
-  //   this['_version']++;
-  // }
-
   // Metoda do dodawania testowych zdarzeń
   addTestEvent(eventType: string, payload: any): void {
     this['_domainEvents'].push({
