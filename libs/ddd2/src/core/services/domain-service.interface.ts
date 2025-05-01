@@ -1,56 +1,107 @@
+import { IEventBus } from "../events";
+import { IUnitOfWork } from "../unit-of-work";
+
 /**
- * Base interface for all domain services
- * A domain service represents domain logic that doesn't naturally fit into entities or value objects
+ * Base interface for domain services in DDD architecture.
+ * Domain services encapsulate domain logic that doesn't naturally belong to entities or value objects.
+ * They are stateless and operate on multiple aggregates or domain objects.
+ * 
+ * @interface IDomainService
  */
 export interface IDomainService {
   /**
-   * Optional service identifier (used for registration)
+   * Optional service identifier used for registration and lookup in service registry.
+   * This ID should be unique within a bounded context.
+   * 
+   * @type {string | undefined}
+   * @memberof IDomainService
    */
   readonly serviceId?: string;
 }
 
-// core/services/domain-service-registry.interface.ts
 /**
- * Registry for domain services
- * Provides methods for registering, retrieving, and managing domain services
+ * Interface for domain services supporting asynchronous lifecycle operations.
+ * Extends the base domain service interface with initialization and disposal capabilities.
+ * Use this for services that need to acquire and release resources.
+ * 
+ * @interface IAsyncDomainService
+ * @extends {IDomainService}
  */
-export interface IDomainServiceRegistry {
+export interface IAsyncDomainService extends IDomainService {
   /**
-   * Registers a domain service in the registry
-   * @param service Domain service to register
-   * @param serviceId Optional service identifier (if not provided, serviceId from the service is used)
+   * Asynchronously initializes the service.
+   * Called after the service is created but before it's used.
+   * Use this method to set up resources, establish connections, or perform other startup tasks.
+   * 
+   * @returns {Promise<void>} A promise that resolves when initialization is complete
+   * @memberof IAsyncDomainService
    */
-  register<T extends IDomainService>(service: T, serviceId?: string): void;
-
+  initialize?(): Promise<void>;
+  
   /**
-   * Retrieves a domain service from the registry
-   * @param serviceId Service identifier
-   * @returns Domain service or undefined if not found
+   * Asynchronously disposes of the service.
+   * Called when the service is no longer needed.
+   * Use this method to clean up resources, close connections, or perform other shutdown tasks.
+   * 
+   * @returns {Promise<void>} A promise that resolves when disposal is complete
+   * @memberof IAsyncDomainService
    */
-  get<T extends IDomainService>(serviceId: string): T | undefined;
-
-  /**
-   * Checks if a service with the given identifier exists in the registry
-   * @param serviceId Service identifier
-   * @returns True if the service exists, false otherwise
-   */
-  has(serviceId: string): boolean;
-
-  /**
-   * Removes a service from the registry
-   * @param serviceId Service identifier to remove
-   * @returns True if the service was removed, false if it didn't exist
-   */
-  remove(serviceId: string): boolean;
-
-  /**
-   * Returns all registered services
-   * @returns Map of services (key: serviceId, value: service)
-   */
-  getAll(): Map<string, IDomainService>;
-
-  /**
-   * Clears the registry by removing all services
-   */
-  clear(): void;
+  dispose?(): Promise<void>;
 }
+
+/**
+ * Interface for services that can work with a Unit of Work.
+ * This enables domain services to participate in transactions and coordinate changes
+ * across multiple aggregates in a consistent manner.
+ * 
+ * @interface IUnitOfWorkAware
+ */
+export interface IUnitOfWorkAware {
+  /**
+   * Sets the Unit of Work context for transactional operations.
+   * After this is called, the service will use the provided Unit of Work
+   * for all operations that require transactional consistency.
+   * 
+   * @param {IUnitOfWork} unitOfWork - The Unit of Work instance to use
+   * @memberof IUnitOfWorkAware
+   */
+  setUnitOfWork(unitOfWork: IUnitOfWork): void;
+  
+  /**
+   * Clears the current Unit of Work context.
+   * Call this when the service should no longer use the previously set Unit of Work.
+   * 
+   * @memberof IUnitOfWorkAware
+   */
+  clearUnitOfWork(): void;
+}
+
+/**
+ * Interface for services that can work with a domain event bus.
+ * This enables domain services to publish domain events without
+ * direct coupling to a specific event bus implementation.
+ * 
+ * @interface IEventBusAware
+ */
+export interface IEventBusAware {
+  /**
+   * Sets the event bus for the service to use when publishing events.
+   * After this is called, the service can publish domain events through the provided bus.
+   * 
+   * @param {IEventBus} eventBus - The event bus instance to use
+   * @memberof IEventBusAware
+   */
+  setEventBus(eventBus: IEventBus): void;
+}
+
+/**
+ * Interface for domain services that require transactional consistency.
+ * Combines the domain service interface with the Unit of Work awareness interface.
+ * Use this for services that need to coordinate changes across multiple aggregates
+ * in a transactional manner.
+ * 
+ * @interface ITransactionalDomainService
+ * @extends {IDomainService}
+ * @extends {IUnitOfWorkAware}
+ */
+export interface ITransactionalDomainService extends IDomainService, IUnitOfWorkAware {}
