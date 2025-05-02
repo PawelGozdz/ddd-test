@@ -72,6 +72,35 @@ export class DuplicateError extends DomainError {
     };
     return new DuplicateError(message, options);
   }
+
+  static withServiceId(serviceId: string, data?: DomainErrorOptions): DuplicateError {
+    const message = `Service with id ${serviceId} already exists`;
+    const options = {
+      code: DomainErrorCode.DuplicateEntry,
+      data,
+    };
+    return new DuplicateError(message, options);
+  }
+}
+
+export class NotFoundError extends DomainError {
+  static withEntityId(id: string, data?: DomainErrorOptions): DuplicateError {
+    const message = `Entity with id ${id} already exists`;
+    const options = {
+      code: DomainErrorCode.DuplicateEntry,
+      data,
+    };
+    return new DuplicateError(message, options);
+  }
+
+  static withServiceId(serviceId: string, data?: DomainErrorOptions): NotFoundError {
+    const message = `Service with id ${serviceId} not found`;
+    const options = {
+      code: DomainErrorCode.NotFound,
+      data,
+    };
+    return new NotFoundError(message, options);
+  }
 }
 
 export class VersionError extends DomainError {

@@ -1,4 +1,4 @@
-import { IDomainService, IDomainServiceRegistry } from "../../core";
+import { DuplicateError, IDomainService, IDomainServiceRegistry, NotFoundError } from "../../core";
 
 /**
  * Default implementation of the domain service registry.
@@ -29,11 +29,11 @@ export class DefaultDomainServiceRegistry implements IDomainServiceRegistry {
     const id = serviceId || service.serviceId;
     
     if (!id) {
-      throw new Error('Service ID is required for registration. Either provide it as parameter or implement serviceId in the service.');
+      throw NotFoundError.withServiceId(id);
     }
 
     if (this.services.has(id)) {
-      throw new Error(`Service with ID '${id}' is already registered.`);
+      throw DuplicateError.withServiceId(id);
     }
 
     this.services.set(id, service);
