@@ -163,37 +163,20 @@ describe('ServiceRegistryBuilder', () => {
       builder.withEventBus(eventBus);
       builder.withUnitOfWork(unitOfWork);
       
-      // Act - mock the ServiceBuilder to verify it's called with correct configuration
-      const originalServiceBuilder = ServiceBuilder;
-      let capturedEventBus: IEventBus | undefined;
-      let capturedUnitOfWork: IUnitOfWork | undefined;
+      // Create spies on the ServiceBuilder prototype methods
+      const withEventBusSpy = vi.spyOn(ServiceBuilder.prototype, 'withEventBus');
+      const withUnitOfWorkSpy = vi.spyOn(ServiceBuilder.prototype, 'withUnitOfWork');
       
-      // @ts-ignore: Mock the ServiceBuilder constructor for this test
-      ServiceBuilder = vi.fn().mockImplementation(
-        (registry: IDomainServiceRegistry, serviceId: string, factory: (...args: any[]) => any) => {
-          const builder = {
-            withEventBus: (eb: IEventBus) => {
-              capturedEventBus = eb;
-              return builder;
-            },
-            withUnitOfWork: (uow: IUnitOfWork) => {
-              capturedUnitOfWork = uow;
-              return builder;
-            }
-          };
-          return builder;
-        }
-      );
-      
+      // Act
       builder.service('test-service', () => new SimpleService('test-service'));
       
-      // Restore the original ServiceBuilder
-      // @ts-ignore: Restore the original
-      ServiceBuilder = originalServiceBuilder;
-      
       // Assert
-      expect(capturedEventBus).toBe(eventBus);
-      expect(capturedUnitOfWork).toBe(unitOfWork);
+      expect(withEventBusSpy).toHaveBeenCalledWith(eventBus);
+      expect(withUnitOfWorkSpy).toHaveBeenCalledWith(unitOfWork);
+      
+      // Clean up
+      withEventBusSpy.mockRestore();
+      withUnitOfWorkSpy.mockRestore();
     });
   });
   
