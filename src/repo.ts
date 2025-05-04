@@ -1,8 +1,8 @@
-import { AggregateRoot, BaseRepository, EntityId, IEventDispatcher } from "@app/libs";
+import { IBaseRepository, IEventDispatcher } from "@app/libs";
 import { Injectable } from "@nestjs/common";
 
 @Injectable()
-export class TestRepo extends BaseRepository {
+export class TestRepo extends IBaseRepository {
   constructor(private readonly dispatcher: IEventDispatcher) {
     super(dispatcher);
   }

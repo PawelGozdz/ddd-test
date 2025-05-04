@@ -1,7 +1,7 @@
-import { DomainError, DomainErrorCode, DomainErrorOptions } from "../core";
+import { IDomainError, DomainErrorCode, DomainErrorOptions } from "../core";
 import { ActorType } from "./actor-type.enum";
 
-export class ActorError extends DomainError {
+export class ActorError extends IDomainError {
   static withType(type: ActorType, data?: DomainErrorOptions): ActorError {
     const message = `Invalid actor type: ${type}`;
     const options = {

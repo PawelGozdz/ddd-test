@@ -1,5 +1,5 @@
 import { 
-  DomainError, 
+  IDomainError, 
   DomainErrorCode, 
   DomainErrorOptions,
 } from '../errors';
@@ -7,7 +7,7 @@ import {
 /**
  * Unified error class for aggregate-related errors
  */
-export class AggregateError extends DomainError {
+export class AggregateError extends IDomainError {
   /**
    * Error for invalid arguments provided to the aggregate
    */

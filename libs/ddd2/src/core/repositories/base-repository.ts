@@ -1,60 +1,39 @@
-import { IAggregateRoot } from "../domain/aggregate-interfaces";
+import { IEventDispatcher, AggregateRoot } from '..';
+import { VersionError } from '../domain/domain.errors';
 
-/**
- * Interface for basic repository operations
- * Provides a minimal contract for aggregate persistence
- */
-export interface IRepository<T extends IAggregateRoot<any>> {
-  /**
-   * Find an aggregate by its identifier
-   * 
-   * @param id - The aggregate identifier
-   * @returns The aggregate if found, null otherwise
-   */
-  findById?(id: any): Promise<T | null>;
-  
-  /**
-   * Save an aggregate
-   * This will create or update the aggregate
-   * 
-   * @param aggregate - The aggregate to save
-   */
-  save(aggregate: T): Promise<void>;
-  
-  /**
-   * Delete an aggregate
-   * 
-   * @param aggregate - The aggregate to delete
-   */
-  delete?(aggregate: T): Promise<void>;
-}
+export abstract class IBaseRepository {
+  constructor(protected readonly eventDispatcher: IEventDispatcher) {}
 
-/**
- * Extended repository interface with additional operations
- * Provides more advanced functionality while remaining optional
- */
-export interface IExtendedRepository<T extends IAggregateRoot<any>> extends IRepository<T> {
-  /**
-   * Check if an aggregate exists
-   * 
-   * @param id - The aggregate identifier
-   * @returns True if the aggregate exists
-   */
-  exists(id: any): Promise<boolean>;
+  async save(aggregate: AggregateRoot): Promise<void> {
+    
+    const events = aggregate.getDomainEvents();
+
+    if(events.length === 0) return;
+
+    const currentVersion = await this.getCurrentVersion(aggregate.getId()) ?? 0;
+    const initialVersion = aggregate.getInitialVersion();
+
+    if (initialVersion !== currentVersion) {
+      throw VersionError.withEntityIdAndVersions(
+        aggregate.getId(),
+        currentVersion,
+        initialVersion
+      );
+    }
+
+    for(let i = 0; i < events.length; i++) {
+      const handlerName = `handle${events[i].eventType}`;
+      const handler = (this as any)[handlerName];
+      
+      if (typeof handler !== 'function') {
+        throw new Error(`Missing handler ${handlerName} in repository ${this.constructor.name}`);
+      }
+      
+      await handler.call(this, events[i].payload);
+    }
   
-  /**
-   * Find aggregates matching a given specification
-   * 
-   * @param spec - The specification to match
-   * @returns Matching aggregates
-   */
-  findBySpecification?(spec: any): Promise<T[]>;
+    await this.eventDispatcher.dispatchEventsForAggregate(aggregate);
+  }
   
-  /**
-   * Find a single aggregate matching a specification
-   * 
-   * @param spec - The specification to match
-   * @returns The matching aggregate or null
-   */
-  findOneBySpecification?(spec: any): Promise<T | null>;
+  abstract getCurrentVersion(id: any): Promise<number>;
 }

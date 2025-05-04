@@ -9,7 +9,7 @@ export type DomainErrorOptions = ErrorOptions & {
   error?: Error;
 };
 
-export abstract class DomainError extends BaseError implements DomainErrorOptions {
+export abstract class IDomainError extends BaseError implements DomainErrorOptions {
   domain?: string | any;
 
   code: DomainErrorCode;
@@ -32,7 +32,7 @@ export abstract class DomainError extends BaseError implements DomainErrorOption
       this.error = options?.error;
     }
 
-    this.timestamp = DomainError.generateTimestamp();
+    this.timestamp = IDomainError.generateTimestamp();
   }
 
   private static generateTimestamp(): Date {
@@ -40,7 +40,7 @@ export abstract class DomainError extends BaseError implements DomainErrorOption
   }
 }
 
-export class MissingValueError extends DomainError {
+export class MissingValueError extends IDomainError {
   static withValue(msg: string, data?: DomainErrorOptions): MissingValueError {
     const message = msg ?? 'Missing value';
     const options = {
@@ -51,7 +51,7 @@ export class MissingValueError extends DomainError {
   }
 }
 
-export class InvalidParameterError extends DomainError {
+export class InvalidParameterError extends IDomainError {
   static withParameter(parameter: string, msg?: string, data?: DomainErrorOptions): InvalidParameterError {
     const message = msg ?? `Invalid ${parameter}`;
     const options: DomainErrorOptions = {
@@ -63,7 +63,7 @@ export class InvalidParameterError extends DomainError {
   }
 }
 
-export class DuplicateError extends DomainError {
+export class DuplicateError extends IDomainError {
   static withEntityId(id: string, data?: DomainErrorOptions): DuplicateError {
     const message = `Entity with id ${id} already exists`;
     const options = {
@@ -72,18 +72,9 @@ export class DuplicateError extends DomainError {
     };
     return new DuplicateError(message, options);
   }
-
-  static withServiceId(serviceId: string, data?: DomainErrorOptions): DuplicateError {
-    const message = `Service with id ${serviceId} already exists`;
-    const options = {
-      code: DomainErrorCode.DuplicateEntry,
-      data,
-    };
-    return new DuplicateError(message, options);
-  }
 }
 
-export class NotFoundError extends DomainError {
+export class NotFoundError extends IDomainError {
   static withEntityId(id: string, data?: DomainErrorOptions): DuplicateError {
     const message = `Entity with id ${id} already exists`;
     const options = {
@@ -91,25 +82,5 @@ export class NotFoundError extends DomainError {
       data,
     };
     return new DuplicateError(message, options);
-  }
-
-  static withServiceId(serviceId: string, data?: DomainErrorOptions): NotFoundError {
-    const message = `Service with id ${serviceId} not found`;
-    const options = {
-      code: DomainErrorCode.NotFound,
-      data,
-    };
-    return new NotFoundError(message, options);
-  }
-}
-
-export class VersionError extends DomainError {
-  static withEntityIdAndVersions(id: any, dbVersion: any, newVersion: any, data?: DomainErrorOptions): DuplicateError {
-    const message = `Version mismatch for entity with id ${id}: expected [${dbVersion}], got [${newVersion}]`;
-    const options = {
-      code: DomainErrorCode.ValidationFailed,
-      data,
-    };
-    return new VersionError(message, options);
   }
 }
