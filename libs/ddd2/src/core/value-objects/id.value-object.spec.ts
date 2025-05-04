@@ -52,7 +52,7 @@ describe('EntityId', () => {
   it('should throw error if bigint is invalid', () => {
     const [error]  = safeRun(() => EntityId.fromBigInt('invalid-bigint'));
 
-    expect(error).toBeDefined();
+    expect(error).toBeInstanceOf(InvalidParameterError);
     expect(error).toEqual(InvalidParameterError.withParameter('entity identifier must be a valid bigint'));
   });
 

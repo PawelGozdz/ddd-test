@@ -1,4 +1,3 @@
-import { DuplicateError, NotFoundError } from "../core";
 import { IDomainServiceRegistry } from "./domain-service-registry.interface";
 import { IDomainService } from "./domain-service.interface";
 import { ServiceDuplicateError, ServiceNotFoundError } from "./service.errors";

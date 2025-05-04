@@ -21,3 +21,15 @@ export class ServiceNotFoundError extends IDomainError {
     return new ServiceNotFoundError(message, options);
   }
 }
+
+export class ServiceCircularError extends IDomainError {
+  static withServices(services: string[], data?: DomainErrorOptions): ServiceNotFoundError {
+    const remaining = Array.from(services).join(', ');
+    const message = `Circular dependency detected: ${remaining}`;
+    const options = {
+      code: DomainErrorCode.Default,
+      data,
+    };
+    return new ServiceCircularError(message, options);
+  }
+}

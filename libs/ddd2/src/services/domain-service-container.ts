@@ -5,6 +5,7 @@ import {
 import { DefaultDomainServiceRegistry } from './domain-service-registry';
 import { IDomainServiceRegistry } from './domain-service-registry.interface';
 import { IAsyncDomainService, IDomainService, IEventBusAware, IUnitOfWorkAware } from './domain-service.interface';
+import { ServiceCircularError } from './service.errors';
 
 /**
  * Container for domain services with dependency resolution capabilities.
@@ -165,8 +166,8 @@ export class DomainServiceContainer {
 
       // If we made no progress but still have pending services, we have a circular dependency
       if (!progress && pending.size > 0) {
-        const remaining = Array.from(pending).join(', ');
-        throw new Error(`Circular dependency detected among services: ${remaining}`);
+        const remaining = Array.from(pending)
+        throw ServiceCircularError.withServices(remaining);
       }
     }
     
