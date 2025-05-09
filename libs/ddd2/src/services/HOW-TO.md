@@ -25,6 +25,7 @@ This guide will walk you through the Domain Services module, explaining its comp
 Before diving into implementation details, let's understand what each concept means and when to use it:
 
 ### 1. Core Concepts
+
 **What**: Fundamental principles and patterns of Domain Services in DDD.
 
 **Why important**: Provides the theoretical foundation for understanding how Domain Services fit into the broader DDD approach.
@@ -32,11 +33,13 @@ Before diving into implementation details, let's understand what each concept me
 **When to use**: When starting with DDD or designing your domain model.
 
 **Examples**:
+
 - Implementing business rules that span multiple entities
 - Coordinating operations across aggregates
 - Implementing domain processes like validation, calculation, or transformation
 
 ### 2. Domain Service Interfaces
+
 **What**: The contract definitions for domain services in your application.
 
 **Why important**: Interfaces define capabilities, promote loose coupling, and enable polymorphism.
@@ -44,12 +47,14 @@ Before diving into implementation details, let's understand what each concept me
 **When to use**: When defining what a domain service can do or when implementing dependency injection.
 
 **Examples**:
+
 - Basic service identification via `IDomainService`
 - Event publication capability via `IEventBusAware`
 - Transaction participation via `IUnitOfWorkAware`
 - Lifecycle management via `IAsyncDomainService`
 
 ### 3. Base Implementations
+
 **What**: Ready-to-extend abstract classes implementing the service interfaces.
 
 **Why important**: Reduces boilerplate code and ensures consistent implementation.
@@ -57,12 +62,14 @@ Before diving into implementation details, let's understand what each concept me
 **When to use**: When creating new domain services to avoid reimplementing common functionality.
 
 **Examples**:
+
 - Use `BaseDomainService` for simple services
 - Use `EventAwareDomainService` for services that publish domain events
 - Use `UnitOfWorkAwareDomainService` for services requiring transactional consistency
 - Use `AsyncDomainService` for services with async initialization needs
 
 ### 4. Service Registration and Discovery
+
 **What**: Mechanisms for registering services and locating them by identifier.
 
 **Why important**: Enables dependency resolution and service location without tight coupling.
@@ -70,12 +77,14 @@ Before diving into implementation details, let's understand what each concept me
 **When to use**: When organizing services and managing their lifecycle in your application.
 
 **Examples**:
+
 - Maintaining a catalog of all available services
 - Finding services by ID at runtime
 - Checking if a specific service is available
 - Managing service lifecycles (registration, retrieval, removal)
 
 ### 5. Service Container and Dependency Injection
+
 **What**: Infrastructure for managing service dependencies and their initialization order.
 
 **Why important**: Automates the complex task of resolving dependencies and initializing services.
@@ -83,12 +92,14 @@ Before diving into implementation details, let's understand what each concept me
 **When to use**: In applications with multiple services that depend on each other.
 
 **Examples**:
+
 - Resolving a complex dependency graph of services
 - Automatic wiring of infrastructure components (event bus, unit of work)
 - Detecting circular dependencies
 - Ensuring services are initialized in the correct order
 
 ### 6. Fluent API for Service Configuration
+
 **What**: Expressive builder pattern API for configuring services.
 
 **Why important**: Makes service configuration more readable and less error-prone.
@@ -96,12 +107,14 @@ Before diving into implementation details, let's understand what each concept me
 **When to use**: When setting up services with complex configurations or dependencies.
 
 **Examples**:
+
 - Building a service with multiple dependencies
 - Configuring a service with specific infrastructure
 - Creating and registering services in a single chain
 - Building a custom service registry
 
 ### 7. Event Integration
+
 **What**: Infrastructure for domain services to publish and subscribe to domain events.
 
 **Why important**: Enables loose coupling through event-driven communication.
@@ -109,12 +122,14 @@ Before diving into implementation details, let's understand what each concept me
 **When to use**: When services need to communicate state changes or trigger processes.
 
 **Examples**:
+
 - Publishing events when important domain operations complete
 - Notifying other parts of the system about state changes
 - Implementing event sourcing patterns
 - Creating audit trails of domain operations
 
 ### 8. Transactional Operations
+
 **What**: Support for executing operations in a transactional context.
 
 **Why important**: Ensures atomicity and consistency across aggregates.
@@ -122,12 +137,14 @@ Before diving into implementation details, let's understand what each concept me
 **When to use**: When operations affect multiple aggregates or require all-or-nothing semantics.
 
 **Examples**:
+
 - Transferring items between orders
 - Processing a payment and updating order status
 - Coordinating inventory adjustments across multiple products
 - Recording complex business operations that must succeed or fail as a unit
 
 ### 9. Async Initialization
+
 **What**: Support for asynchronous service initialization and cleanup.
 
 **Why important**: Enables resources that require async setup/teardown to be properly managed.
@@ -135,12 +152,14 @@ Before diving into implementation details, let's understand what each concept me
 **When to use**: When services rely on external resources or need async configuration.
 
 **Examples**:
+
 - Connecting to external APIs or databases
 - Setting up event subscriptions
 - Loading cached data
 - Initializing complex resources that require async operations
 
 ### 10. Best Practices
+
 **What**: Recommended patterns and approaches for domain service implementation.
 
 **Why important**: Helps avoid common pitfalls and ensures alignment with DDD principles.
@@ -148,6 +167,7 @@ Before diving into implementation details, let's understand what each concept me
 **When to use**: Throughout your domain service implementations.
 
 **Examples**:
+
 - Keeping services stateless
 - Properly defining transaction boundaries
 - Organizing services by bounded context
@@ -198,6 +218,7 @@ interface IAsyncDomainService extends IDomainService {
 ```
 
 These interfaces define capabilities that services can implement:
+
 - **IEventBusAware**: For services that need to publish domain events
 - **IUnitOfWorkAware**: For services that participate in transactions
 - **IAsyncDomainService**: For services with asynchronous initialization/cleanup
@@ -291,6 +312,7 @@ const orderService = container.getService<OrderService>('orderService');
 ```
 
 The container:
+
 - Tracks dependencies between services
 - Ensures initialization in the correct order
 - Detects circular dependencies
@@ -318,6 +340,7 @@ const orderService = new ServiceBuilder<OrderService>(registry, 'orderService',
 ```
 
 This approach provides:
+
 - Type-safe dependency injection
 - Fluent configuration of infrastructure components
 - Clear visualization of service dependencies
@@ -342,6 +365,7 @@ class OrderProcessingService extends EventAwareDomainService {
 ```
 
 Services can be configured with an event bus:
+
 - Automatically by the service container
 - Explicitly through the builder API
 - Manually by calling `setEventBus()`
@@ -373,6 +397,7 @@ class OrderManagementService extends UnitOfWorkAwareDomainService {
 ```
 
 The `executeInTransaction` method:
+
 - Begins a transaction automatically
 - Commits on successful completion
 - Rolls back if an error occurs
@@ -411,6 +436,7 @@ class ExternalApiService extends AsyncDomainService {
 ```
 
 Async services:
+
 - Are initialized by the container during `initializeServices()`
 - Can be explicitly initialized using the builder API
 - Should be awaited before use

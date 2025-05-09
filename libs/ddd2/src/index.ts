@@ -4,3 +4,5 @@ export * from './validations';
 export * from './utils';
 export * from './policies';
 export * from './services';
+export * from './outbox';
+export * from './message-processor';
