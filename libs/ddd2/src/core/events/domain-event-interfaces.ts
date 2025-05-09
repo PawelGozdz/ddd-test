@@ -5,31 +5,31 @@
 export interface IEventMetadata {
   /** Unique identifier for the event */
   eventId?: string;
-  
+
   /** When the event occurred */
   timestamp?: Date;
-  
+
   /** Correlation ID for related events */
   correlationId?: string;
-  
+
   /** ID of the event that caused this event */
   causationId?: string;
-  
+
   /** ID of the aggregate that generated the event */
   aggregateId?: string | number;
-  
+
   /** Type of the aggregate that generated the event */
   aggregateType?: string;
-  
+
   /** Version of the aggregate after applying the event */
   aggregateVersion?: number;
-  
+
   /** Version of the event structure (used for versioning) */
   eventVersion?: number;
-  
+
   /** ID of the user or system that triggered the event */
   userId?: string;
-  
+
   /** Additional application-specific metadata */
   [key: string]: any;
 }
@@ -41,7 +41,7 @@ export interface IEventMetadata {
 export interface IDomainEvent<P = any> {
   /** Type of the event */
   eventType: string;
-  
+
   /** Payload (data) of the event */
   payload?: P;
 }

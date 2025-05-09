@@ -1,13 +1,12 @@
 import { LibUtils } from '../../utils';
-import { 
-  IEventBus, 
+import {
+  IEventBus,
   IDomainEvent,
   IExtendedDomainEvent,
-  EventBusMiddleware, 
+  EventBusMiddleware,
   InMemoryEventBusOptions,
-  InMemoryEventBus
+  InMemoryEventBus,
 } from '..';
-
 
 /**
  * Builder for creating and configuring event buses
@@ -27,7 +26,7 @@ export class EventBusBuilder {
 
   /**
    * Add a middleware to the event bus
-   * 
+   *
    * @param middleware - The middleware function
    * @returns The builder instance for chaining
    */
@@ -38,7 +37,7 @@ export class EventBusBuilder {
 
   /**
    * Enable logging in the event bus
-   * 
+   *
    * @returns The builder instance for chaining
    */
   withLogging(): EventBusBuilder {
@@ -48,11 +47,13 @@ export class EventBusBuilder {
 
   /**
    * Add a custom error handler
-   * 
+   *
    * @param handler - The error handler function
    * @returns The builder instance for chaining
    */
-  withErrorHandler(handler: (error: Error, eventType: string) => void): EventBusBuilder {
+  withErrorHandler(
+    handler: (error: Error, eventType: string) => void,
+  ): EventBusBuilder {
     this.errorHandler = handler;
     return this;
   }
@@ -60,11 +61,11 @@ export class EventBusBuilder {
   /**
    * Add a correlation ID middleware
    * This middleware adds a correlation ID to events that don't have one
-   * 
+   *
    * @returns The builder instance for chaining
    */
   withCorrelation(): EventBusBuilder {
-    return this.withMiddleware(next => async event => {
+    return this.withMiddleware((next) => async (event) => {
       // Check if this is an extended event with metadata
       if ('metadata' in event) {
         const extendedEvent = event as IExtendedDomainEvent;
@@ -83,28 +84,31 @@ export class EventBusBuilder {
 
   /**
    * Add a middleware that executes a custom function for each event
-   * 
+   *
    * @param fn - The function to execute
    * @returns The builder instance for chaining
    */
   withCustomMiddleware(
-    fn: (event: IDomainEvent, next: (event: IDomainEvent) => Promise<void>) => Promise<void>
+    fn: (
+      event: IDomainEvent,
+      next: (event: IDomainEvent) => Promise<void>,
+    ) => Promise<void>,
   ): EventBusBuilder {
-    return this.withMiddleware(next => async event => {
+    return this.withMiddleware((next) => async (event) => {
       await fn(event, next);
     });
   }
 
   /**
    * Build the event bus with the configured options
-   * 
+   *
    * @returns A fully configured event bus
    */
   build(): IEventBus {
     const options: InMemoryEventBusOptions = {
       enableLogging: this.enableLogging,
       middlewares: this.middlewares,
-      errorHandler: this.errorHandler
+      errorHandler: this.errorHandler,
     };
 
     return new InMemoryEventBus(options);

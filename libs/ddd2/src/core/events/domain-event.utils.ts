@@ -1,5 +1,8 @@
 import { LibUtils } from '../../utils';
-import { IExtendedDomainEvent, IEventMetadata } from './domain-event-interfaces';
+import {
+  IExtendedDomainEvent,
+  IEventMetadata,
+} from './domain-event-interfaces';
 
 /**
  * Creates a new domain event with basic metadata
@@ -11,7 +14,7 @@ import { IExtendedDomainEvent, IEventMetadata } from './domain-event-interfaces'
 export function createDomainEvent<P = any>(
   eventType: string,
   payload: P,
-  metadata?: Partial<IEventMetadata>
+  metadata?: Partial<IEventMetadata>,
 ): IExtendedDomainEvent<P> {
   return {
     eventType,
@@ -19,7 +22,7 @@ export function createDomainEvent<P = any>(
     metadata: {
       eventId: LibUtils.getUUID(),
       timestamp: new Date(),
-      ...metadata
-    }
+      ...metadata,
+    },
   };
 }

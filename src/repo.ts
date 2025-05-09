@@ -1,5 +1,5 @@
-import { IBaseRepository, IEventDispatcher } from "@app/libs";
-import { Injectable } from "@nestjs/common";
+import { IBaseRepository, IEventDispatcher } from '@app/libs';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class TestRepo extends IBaseRepository {

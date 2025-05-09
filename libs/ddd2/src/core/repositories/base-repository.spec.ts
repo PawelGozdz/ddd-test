@@ -9,12 +9,16 @@ class MockEventDispatcher implements IEventDispatcher {
   public dispatchedAggregates: AggregateRoot<any>[] = [];
   public shouldFail: boolean = false;
 
-  async dispatchEventsForAggregate(aggregate: AggregateRoot<any>): Promise<void> {
+  async dispatchEventsForAggregate(
+    aggregate: AggregateRoot<any>,
+  ): Promise<void> {
     if (this.shouldFail) {
       throw new Error('Dispatch events failed');
     }
     this.dispatchedAggregates.push(aggregate);
-    aggregate.getDomainEvents().forEach(event => this.dispatchedEvents.push(event));
+    aggregate
+      .getDomainEvents()
+      .forEach((event) => this.dispatchedEvents.push(event));
 
     aggregate.commit();
   }
@@ -23,7 +27,7 @@ class MockEventDispatcher implements IEventDispatcher {
     if (this.shouldFail) {
       throw new Error('Dispatch events failed');
     }
-    events.forEach(event => this.dispatchedEvents.push(event));
+    events.forEach((event) => this.dispatchedEvents.push(event));
   }
 
   reset(): void {
@@ -56,7 +60,7 @@ class TestAggregate extends AggregateRoot<string> {
   addTestEvent(eventType: string, payload: any): void {
     this['_domainEvents'].push({
       eventType,
-      payload
+      payload,
     });
 
     // Symulujemy zwiększenie wersji
@@ -136,7 +140,7 @@ describe('IBaseRepository', () => {
       expect(repository.handlerCalls).toHaveLength(1);
       expect(repository.handlerCalls[0]).toEqual({
         eventType: eventNameChanged,
-        payload: { name: 'Test' }
+        payload: { name: 'Test' },
       });
       expect(await eventDispatcher.dispatchedAggregates).toContain(aggregate);
     });
@@ -206,7 +210,7 @@ describe('IBaseRepository', () => {
     it('should handle case when aggregate has no events', async () => {
       // Arrange - No events in aggregate
       repository.setVersion(aggregateId, 0);
-      const curVersion = repository.getCurrentVersion = vi.fn();
+      const curVersion = (repository.getCurrentVersion = vi.fn());
 
       // Act
       await repository.save(aggregate);
@@ -234,7 +238,7 @@ describe('IBaseRepository', () => {
     it('should handle first-time save with no previous version', async () => {
       // Arrange - No version set for this ID (simulate new aggregate)
       aggregate.addTestEvent(eventNameChanged, { name: 'Test' });
-      
+
       // Act
       await repository.save(aggregate);
 
@@ -247,10 +251,13 @@ describe('IBaseRepository', () => {
       // Arrange
       aggregate.addTestEvent(eventNameChanged, { name: 'Test' });
       repository.setVersion(aggregateId, 0);
-      
+
       // Mock handler to throw error
-      const handleSpy = vi.spyOn(repository as any, 'handleNameChanged')
-        .mockImplementation(() => { throw new Error('Handler error'); });
+      const handleSpy = vi
+        .spyOn(repository as any, 'handleNameChanged')
+        .mockImplementation(() => {
+          throw new Error('Handler error');
+        });
 
       // Act
       const [error] = await safeRun(() => repository.save(aggregate));
@@ -265,8 +272,11 @@ describe('IBaseRepository', () => {
     it('should execute all event handlers before dispatching events', async () => {
       // Arrange
       const handlerSpy = vi.spyOn(repository as any, 'handleNameChanged');
-      const dispatchSpy = vi.spyOn(eventDispatcher, 'dispatchEventsForAggregate');
-      
+      const dispatchSpy = vi.spyOn(
+        eventDispatcher,
+        'dispatchEventsForAggregate',
+      );
+
       aggregate.addTestEvent(eventNameChanged, { name: 'Test' });
       repository.setVersion(aggregateId, 0);
 
@@ -276,7 +286,7 @@ describe('IBaseRepository', () => {
       // Assert
       expect(handlerSpy).toHaveBeenCalledTimes(1);
       expect(dispatchSpy).toHaveBeenCalledTimes(1);
-      
+
       // Check execution order
       // dispatchEventsForAggregate should be called after handler
       const handlerCallOrder = handlerSpy.mock.invocationCallOrder[0];
@@ -299,7 +309,9 @@ describe('IBaseRepository', () => {
 
     it('should return 0 for non-existent aggregate', async () => {
       // Arrange
-      const nonExistentId = EntityId.fromUUID('00000000-0000-0000-0000-000000000000');
+      const nonExistentId = EntityId.fromUUID(
+        '00000000-0000-0000-0000-000000000000',
+      );
 
       // Act
       const version = await repository.getCurrentVersion(nonExistentId);
@@ -313,15 +325,19 @@ describe('IBaseRepository', () => {
     it('should verify event versions are processed in order', async () => {
       // Arrange
       const orderOfExecution: string[] = [];
-      
+
       // Override handlers to track execution order
-      vi.spyOn(repository as any, 'handleNameChanged').mockImplementation(async () => {
-        orderOfExecution.push('NameChanged');
-      });
-      
-      vi.spyOn(repository as any, 'handleItemAdded').mockImplementation(async () => {
-        orderOfExecution.push('ItemAdded');
-      });
+      vi.spyOn(repository as any, 'handleNameChanged').mockImplementation(
+        async () => {
+          orderOfExecution.push('NameChanged');
+        },
+      );
+
+      vi.spyOn(repository as any, 'handleItemAdded').mockImplementation(
+        async () => {
+          orderOfExecution.push('ItemAdded');
+        },
+      );
 
       repository.setVersion(aggregateId, 0);
       aggregate.addTestEvent('NameChanged', { name: 'Test' });
@@ -338,14 +354,18 @@ describe('IBaseRepository', () => {
     it('should fail entire transaction if any event handler fails', async () => {
       // Arrange
       // First handler succeeds
-      vi.spyOn(repository as any, 'handleNameChanged').mockImplementation(async () => {
-        // Success
-      });
-      
+      vi.spyOn(repository as any, 'handleNameChanged').mockImplementation(
+        async () => {
+          // Success
+        },
+      );
+
       // Second handler fails
-      vi.spyOn(repository as any, 'handleItemAdded').mockImplementation(async () => {
-        throw new Error('Second handler failed');
-      });
+      vi.spyOn(repository as any, 'handleItemAdded').mockImplementation(
+        async () => {
+          throw new Error('Second handler failed');
+        },
+      );
 
       repository.setVersion(aggregateId, 0);
       aggregate.addTestEvent('NameChanged', { name: 'Test' });
@@ -354,8 +374,7 @@ describe('IBaseRepository', () => {
       // Act
       const [error] = await safeRun(() => repository.save(aggregate));
       // Assert
-      expect(error?.message)
-        .toBe(`Second handler failed`);
+      expect(error?.message).toBe(`Second handler failed`);
       expect(repository.handlerCalls).toHaveLength(0); // No handlers recorded due to spy
       expect(eventDispatcher.dispatchedAggregates).toHaveLength(0); // Event dispatch didn't happen
     });

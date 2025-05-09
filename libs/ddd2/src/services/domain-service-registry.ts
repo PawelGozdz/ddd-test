@@ -1,19 +1,19 @@
-import { IDomainServiceRegistry } from "./domain-service-registry.interface";
-import { IDomainService } from "./domain-service.interface";
-import { ServiceDuplicateError, ServiceNotFoundError } from "./service.errors";
+import { IDomainServiceRegistry } from './domain-service-registry.interface';
+import { IDomainService } from './domain-service.interface';
+import { ServiceDuplicateError, ServiceNotFoundError } from './service.errors';
 
 /**
  * Default implementation of the domain service registry.
  * Provides a simple Map-based storage for domain services with operations
  * for registration, retrieval, and management.
- * 
+ *
  * @class DefaultDomainServiceRegistry
  * @implements {IDomainServiceRegistry}
  */
 export class DefaultDomainServiceRegistry implements IDomainServiceRegistry {
   /**
    * Map containing registered services, keyed by service ID.
-   * 
+   *
    * @private
    * @type {Map<string, IDomainService>}
    */
@@ -21,15 +21,18 @@ export class DefaultDomainServiceRegistry implements IDomainServiceRegistry {
 
   /**
    * Registers a domain service in the registry.
-   * 
+   *
    * @template T - Type extending IDomainService
    * @param {T} service - Domain service to register
    * @param {string} [serviceId] - Optional service identifier
    * @throws {Error} If service has no ID or service with the same ID is already registered
    */
-  public register<T extends IDomainService>(service: T, serviceId?: string): void {
+  public register<T extends IDomainService>(
+    service: T,
+    serviceId?: string,
+  ): void {
     const id = serviceId || service.serviceId;
-    
+
     if (!id) {
       throw ServiceNotFoundError.withServiceId(id);
     }
@@ -43,7 +46,7 @@ export class DefaultDomainServiceRegistry implements IDomainServiceRegistry {
 
   /**
    * Retrieves a domain service from the registry by its ID.
-   * 
+   *
    * @template T - Type extending IDomainService that will be returned
    * @param {string} serviceId - Service identifier
    * @returns {T | undefined} Domain service or undefined if not found
@@ -54,7 +57,7 @@ export class DefaultDomainServiceRegistry implements IDomainServiceRegistry {
 
   /**
    * Checks if a service with the given ID exists in the registry.
-   * 
+   *
    * @param {string} serviceId - Service identifier to check
    * @returns {boolean} True if the service exists, false otherwise
    */
@@ -64,7 +67,7 @@ export class DefaultDomainServiceRegistry implements IDomainServiceRegistry {
 
   /**
    * Removes a service from the registry.
-   * 
+   *
    * @param {string} serviceId - Service identifier to remove
    * @returns {boolean} True if the service was removed, false if it didn't exist
    */
@@ -75,7 +78,7 @@ export class DefaultDomainServiceRegistry implements IDomainServiceRegistry {
   /**
    * Returns all registered services.
    * Creates a new Map to prevent external modification of the internal storage.
-   * 
+   *
    * @returns {Map<string, IDomainService>} Map of services (key: serviceId, value: service)
    */
   public getAll(): Map<string, IDomainService> {

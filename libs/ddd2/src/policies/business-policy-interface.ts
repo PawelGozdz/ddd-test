@@ -9,17 +9,17 @@ export interface IBusinessPolicy<T> {
    * Check if entity satisfies the policy
    */
   isSatisfiedBy(entity: T): boolean;
-  
+
   /**
    * Validate entity against the policy and return detailed result
    */
   check(entity: T): Result<T, PolicyViolation>;
-  
+
   /**
    * Combine this policy with another using AND logic
    */
   and(other: IBusinessPolicy<T>): IBusinessPolicy<T>;
-  
+
   /**
    * Combine this policy with another using OR logic
    */

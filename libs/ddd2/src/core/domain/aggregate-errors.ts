@@ -1,8 +1,4 @@
-import { 
-  IDomainError, 
-  DomainErrorCode, 
-  DomainErrorOptions,
-} from '../errors';
+import { IDomainError, DomainErrorCode, DomainErrorOptions } from '../errors';
 
 /**
  * Unified error class for aggregate-related errors
@@ -11,10 +7,13 @@ export class AggregateError extends IDomainError {
   /**
    * Error for invalid arguments provided to the aggregate
    */
-  static invalidArguments(message: string, data?: DomainErrorOptions): AggregateError {
+  static invalidArguments(
+    message: string,
+    data?: DomainErrorOptions,
+  ): AggregateError {
     const options = {
       code: DomainErrorCode.InvalidParameter,
-      data
+      data,
     };
     return new AggregateError(message, options);
   }
@@ -23,10 +22,10 @@ export class AggregateError extends IDomainError {
    * Error for version conflicts in the aggregate
    */
   static versionConflict(
-    aggregateType: string, 
-    aggregateId: any, 
-    currentVersion: number, 
-    expectedVersion: number
+    aggregateType: string,
+    aggregateId: any,
+    currentVersion: number,
+    expectedVersion: number,
   ): AggregateError {
     const message = `Version conflict: Aggregate ${aggregateType} with ID ${aggregateId} has version ${currentVersion}, but expected ${expectedVersion}`;
     const options = {
@@ -35,8 +34,8 @@ export class AggregateError extends IDomainError {
         aggregateType,
         aggregateId,
         currentVersion,
-        expectedVersion
-      }
+        expectedVersion,
+      },
     };
     return new AggregateError(message, options);
   }
@@ -44,14 +43,17 @@ export class AggregateError extends IDomainError {
   /**
    * Error for when a required feature is not enabled
    */
-  static featureNotEnabled(feature: string, aggregateType: string): AggregateError {
+  static featureNotEnabled(
+    feature: string,
+    aggregateType: string,
+  ): AggregateError {
     const message = `Feature '${feature}' is not enabled on aggregate ${aggregateType}`;
     const options = {
       code: DomainErrorCode.ValidationFailed,
       data: {
         feature,
-        aggregateType
-      }
+        aggregateType,
+      },
     };
     return new AggregateError(message, options);
   }
@@ -59,14 +61,17 @@ export class AggregateError extends IDomainError {
   /**
    * Error for when a required method is not implemented
    */
-  static methodNotImplemented(methodName: string, aggregateType: string): AggregateError {
+  static methodNotImplemented(
+    methodName: string,
+    aggregateType: string,
+  ): AggregateError {
     const message = `Method '${methodName}' must be implemented by ${aggregateType} to use this feature`;
     const options = {
       code: DomainErrorCode.MissingValue,
       data: {
         methodName,
-        aggregateType
-      }
+        aggregateType,
+      },
     };
     return new AggregateError(message, options);
   }
@@ -74,14 +79,17 @@ export class AggregateError extends IDomainError {
   /**
    * Error for invalid snapshot
    */
-  static invalidSnapshot(aggregateType: string, reason?: string): AggregateError {
+  static invalidSnapshot(
+    aggregateType: string,
+    reason?: string,
+  ): AggregateError {
     const message = `Invalid snapshot for aggregate ${aggregateType}${reason ? `: ${reason}` : ''}`;
     const options = {
       code: DomainErrorCode.InvalidFormat,
       data: {
         aggregateType,
-        reason
-      }
+        reason,
+      },
     };
     return new AggregateError(message, options);
   }
@@ -95,8 +103,8 @@ export class AggregateError extends IDomainError {
       code: DomainErrorCode.ValidationFailed,
       data: {
         snapshotId,
-        aggregateId
-      }
+        aggregateId,
+      },
     };
     return new AggregateError(message, options);
   }
@@ -104,14 +112,17 @@ export class AggregateError extends IDomainError {
   /**
    * Error for type mismatch during snapshot restoration
    */
-  static typeMismatch(snapshotType: string, aggregateType: string): AggregateError {
+  static typeMismatch(
+    snapshotType: string,
+    aggregateType: string,
+  ): AggregateError {
     const message = `Aggregate type mismatch: Snapshot is for type ${snapshotType}, but trying to load into ${aggregateType}`;
     const options = {
       code: DomainErrorCode.ValidationFailed,
       data: {
         snapshotType,
-        aggregateType
-      }
+        aggregateType,
+      },
     };
     return new AggregateError(message, options);
   }
@@ -119,14 +130,17 @@ export class AggregateError extends IDomainError {
   /**
    * Error for duplicate upcaster registration
    */
-  static duplicateUpcaster(eventType: string, sourceVersion: number): AggregateError {
+  static duplicateUpcaster(
+    eventType: string,
+    sourceVersion: number,
+  ): AggregateError {
     const message = `Upcaster for event ${eventType} version ${sourceVersion} already exists`;
     const options = {
       code: DomainErrorCode.DuplicateEntry,
       data: {
         eventType,
-        sourceVersion
-      }
+        sourceVersion,
+      },
     };
     return new AggregateError(message, options);
   }
@@ -134,15 +148,19 @@ export class AggregateError extends IDomainError {
   /**
    * Error for missing upcaster
    */
-  static missingUpcaster(eventType: string, fromVersion: number, toVersion: number): AggregateError {
+  static missingUpcaster(
+    eventType: string,
+    fromVersion: number,
+    toVersion: number,
+  ): AggregateError {
     const message = `Missing upcaster for event ${eventType} from version ${fromVersion} to ${toVersion}`;
     const options = {
       code: DomainErrorCode.MissingValue,
       data: {
         eventType,
         fromVersion,
-        toVersion
-      }
+        toVersion,
+      },
     };
     return new AggregateError(message, options);
   }

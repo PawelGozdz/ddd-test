@@ -4,14 +4,14 @@ import { IDomainService } from './domain-service.interface';
  * Registry for domain services.
  * Provides a centralized store for registering, retrieving, and managing domain services.
  * Acts as a service locator for domain services throughout the application.
- * 
+ *
  * @interface IDomainServiceRegistry
  */
 export interface IDomainServiceRegistry {
   /**
    * Registers a domain service in the registry.
    * If a service with the same ID already exists, an error should be thrown.
-   * 
+   *
    * @template T - Type extending IDomainService
    * @param {T} service - Domain service to register
    * @param {string} [serviceId] - Optional service identifier (if not provided, serviceId from the service is used)
@@ -22,7 +22,7 @@ export interface IDomainServiceRegistry {
 
   /**
    * Retrieves a domain service from the registry by its identifier.
-   * 
+   *
    * @template T - Type extending IDomainService that will be returned
    * @param {string} serviceId - Service identifier
    * @returns {T | undefined} Domain service or undefined if not found
@@ -32,7 +32,7 @@ export interface IDomainServiceRegistry {
 
   /**
    * Checks if a service with the given identifier exists in the registry.
-   * 
+   *
    * @param {string} serviceId - Service identifier to check
    * @returns {boolean} True if the service exists, false otherwise
    * @memberof IDomainServiceRegistry
@@ -41,7 +41,7 @@ export interface IDomainServiceRegistry {
 
   /**
    * Removes a service from the registry.
-   * 
+   *
    * @param {string} serviceId - Service identifier to remove
    * @returns {boolean} True if the service was removed, false if it didn't exist
    * @memberof IDomainServiceRegistry
@@ -50,7 +50,7 @@ export interface IDomainServiceRegistry {
 
   /**
    * Returns all registered services.
-   * 
+   *
    * @returns {Map<string, IDomainService>} Map of services (key: serviceId, value: service)
    * @memberof IDomainServiceRegistry
    */
@@ -58,7 +58,7 @@ export interface IDomainServiceRegistry {
 
   /**
    * Clears the registry by removing all services.
-   * 
+   *
    * @memberof IDomainServiceRegistry
    */
   clear(): void;

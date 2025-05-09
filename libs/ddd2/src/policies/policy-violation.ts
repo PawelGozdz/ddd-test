@@ -5,7 +5,7 @@ export class PolicyViolation {
   constructor(
     public readonly code: string,
     public readonly message: string,
-    public readonly details?: Record<string, any>
+    public readonly details?: Record<string, any>,
   ) {}
 
   toString(): string {

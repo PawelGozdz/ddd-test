@@ -1,9 +1,17 @@
 // app/infrastructure/nestjs/ddd.module.ts
-import { EventBusBuilder, EventBusMiddleware, EventDispatcher, IEventBus, IEventDispatcher } from '@app/libs';
+import {
+  EventBusBuilder,
+  EventBusMiddleware,
+  EventDispatcher,
+  IEventBus,
+  IEventDispatcher,
+} from '@app/libs';
 import { Module, DynamicModule, Provider, Global } from '@nestjs/common';
-import { DiscoveryModule} from '@nestjs/core';
-import { DDD_MODULE_OPTIONS, EventHandlerExplorer } from './event-handler-explorer.service';
-
+import { DiscoveryModule } from '@nestjs/core';
+import {
+  DDD_MODULE_OPTIONS,
+  EventHandlerExplorer,
+} from './event-handler-explorer.service';
 
 /**
  * Opcje modułu DDD
@@ -41,7 +49,7 @@ export interface DddModuleOptions {
    * Konfiguracja repozytorium
    */
   repositories?: Provider[];
-  
+
   /**
    * Dodatkowi providenci
    */
@@ -53,7 +61,7 @@ export interface DddModuleOptions {
  */
 @Global()
 @Module({
-  imports: [DiscoveryModule]
+  imports: [DiscoveryModule],
 })
 export class DddModule {
   /**
@@ -65,16 +73,16 @@ export class DddModule {
       eventBus: {
         enableLogging: false,
         enableCorrelation: true,
-        middlewares: []
+        middlewares: [],
       },
       discovery: {
         enabled: true,
         exploreOnInit: true,
         enableActivation: true,
-        defaultActive: true
+        defaultActive: true,
       },
       repositories: [],
-      providers: []
+      providers: [],
     };
 
     // Połącz opcje z domyślnymi
@@ -82,7 +90,7 @@ export class DddModule {
       eventBus: { ...defaultOptions.eventBus, ...options.eventBus },
       discovery: { ...defaultOptions.discovery, ...options.discovery },
       repositories: options.repositories || [],
-      providers: options.providers || []
+      providers: options.providers || [],
     };
 
     // Przygotuj providery
@@ -92,43 +100,45 @@ export class DddModule {
         provide: IEventBus,
         useFactory: () => {
           let builder = EventBusBuilder.create();
-          
+
           // Konfiguracja na podstawie opcji
           if (mergedOptions.eventBus?.enableLogging) {
             builder = builder.withLogging();
           }
-          
+
           if (mergedOptions.eventBus?.enableCorrelation) {
             builder = builder.withCorrelation();
           }
-          
+
           if (mergedOptions.eventBus?.errorHandler) {
-            builder = builder.withErrorHandler(mergedOptions.eventBus.errorHandler);
+            builder = builder.withErrorHandler(
+              mergedOptions.eventBus.errorHandler,
+            );
           }
-          
+
           // Dodaj wszystkie middleware
           for (const middleware of mergedOptions.eventBus?.middlewares || []) {
             builder = builder.withMiddleware(middleware);
           }
-          
+
           return builder.build();
-        }
+        },
       },
-      
+
       // Provider dla EventDispatcher
       {
         provide: IEventDispatcher,
         useFactory: (eventBus: IEventBus) => {
           return new EventDispatcher(eventBus);
         },
-        inject: [IEventBus]
+        inject: [IEventBus],
       },
-      
+
       // Provider dla opcji modułu - użyteczne przy wstrzykiwaniu
       {
         provide: DDD_MODULE_OPTIONS,
-        useValue: mergedOptions
-      }
+        useValue: mergedOptions,
+      },
     ];
 
     // Dodaj explorer handlerów jeśli odkrywanie jest włączone
@@ -137,20 +147,20 @@ export class DddModule {
     }
 
     // Dodaj repozytoria i pozostałe providery
-    providers.push(...(mergedOptions.repositories || []), ...(mergedOptions.providers || []));
+    providers.push(
+      ...(mergedOptions.repositories || []),
+      ...(mergedOptions.providers || []),
+    );
 
     // Przygotuj eksporty
-    const exports = [
-      IEventBus,
-      IEventDispatcher
-    ];
+    const exports = [IEventBus, IEventDispatcher];
 
     return {
       module: DddModule,
       global: true, // Moduł globalny - dostępny wszędzie
       imports: [DiscoveryModule],
       providers,
-      exports
+      exports,
     };
   }
 }

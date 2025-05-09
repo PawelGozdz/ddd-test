@@ -1,4 +1,4 @@
-import { AggregateRoot, IDomainEvent, IEventBus, IEventDispatcher } from "..";
+import { AggregateRoot, IDomainEvent, IEventBus, IEventDispatcher } from '..';
 
 /**
  * Default implementation of event dispatcher
@@ -9,14 +9,16 @@ export class EventDispatcher implements IEventDispatcher {
   /**
    * Dispatch all events from an aggregate and clear them
    */
-  async dispatchEventsForAggregate(aggregate: AggregateRoot<any>): Promise<void> {
+  async dispatchEventsForAggregate(
+    aggregate: AggregateRoot<any>,
+  ): Promise<void> {
     const events = aggregate.getDomainEvents();
-    
+
     if (events.length === 0) return;
-    
+
     // Publish each event
     await this.dispatchEvents(...events);
-    
+
     // Clear events from aggregate
     aggregate.commit();
   }
@@ -29,7 +31,6 @@ export class EventDispatcher implements IEventDispatcher {
     }
   }
 }
-
 
 /**
  * Factory function to create an event dispatcher

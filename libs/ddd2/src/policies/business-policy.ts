@@ -10,7 +10,7 @@ export class BusinessPolicy<T> implements IBusinessPolicy<T> {
     private readonly specification: ISpecification<T>,
     private readonly violationCode: string,
     private readonly violationMessage: string,
-    private readonly violationDetails?: (entity: T) => Record<string, any>
+    private readonly violationDetails?: (entity: T) => Record<string, any>,
   ) {}
 
   isSatisfiedBy(entity: T): boolean {
@@ -21,13 +21,13 @@ export class BusinessPolicy<T> implements IBusinessPolicy<T> {
     if (this.isSatisfiedBy(entity)) {
       return Result.ok(entity);
     }
-    
-    const details = this.violationDetails ? this.violationDetails(entity) : undefined;
-    return Result.fail(new PolicyViolation(
-      this.violationCode,
-      this.violationMessage,
-      details
-    ));
+
+    const details = this.violationDetails
+      ? this.violationDetails(entity)
+      : undefined;
+    return Result.fail(
+      new PolicyViolation(this.violationCode, this.violationMessage, details),
+    );
   }
 
   and(other: IBusinessPolicy<T>): IBusinessPolicy<T> {
@@ -45,13 +45,13 @@ export class BusinessPolicy<T> implements IBusinessPolicy<T> {
     specification: ISpecification<T>,
     violationCode: string,
     violationMessage: string,
-    violationDetails?: (entity: T) => Record<string, any>
+    violationDetails?: (entity: T) => Record<string, any>,
   ): BusinessPolicy<T> {
     return new BusinessPolicy<T>(
       specification,
       violationCode,
       violationMessage,
-      violationDetails
+      violationDetails,
     );
   }
 
@@ -61,15 +61,21 @@ export class BusinessPolicy<T> implements IBusinessPolicy<T> {
   static fromValidator<T>(
     validator: IValidator<T>,
     violationCode: string,
-    violationMessage: string
+    violationMessage: string,
   ): BusinessPolicy<T> {
     const spec: ISpecification<T> = {
       isSatisfiedBy(candidate: T): boolean {
         return validator.validate(candidate).isSuccess;
       },
-      and(other) { throw new Error('Not implemented'); },
-      or(other) { throw new Error('Not implemented'); },
-      not() { throw new Error('Not implemented'); }
+      and(other) {
+        throw new Error('Not implemented');
+      },
+      or(other) {
+        throw new Error('Not implemented');
+      },
+      not() {
+        throw new Error('Not implemented');
+      },
     };
 
     return new BusinessPolicy<T>(
@@ -80,14 +86,14 @@ export class BusinessPolicy<T> implements IBusinessPolicy<T> {
         const result = validator.validate(entity);
         if (result.isFailure) {
           return {
-            validationErrors: result.error.errors.map(e => ({
+            validationErrors: result.error.errors.map((e) => ({
               property: e.property,
-              message: e.message
-            }))
+              message: e.message,
+            })),
           };
         }
         return {};
-      }
+      },
     );
   }
 }

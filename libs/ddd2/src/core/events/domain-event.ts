@@ -1,5 +1,8 @@
 import { LibUtils } from '../../utils';
-import { IEventMetadata, IExtendedDomainEvent } from './domain-event-interfaces';
+import {
+  IEventMetadata,
+  IExtendedDomainEvent,
+} from './domain-event-interfaces';
 
 /**
  * Base implementation of a domain event
@@ -10,22 +13,22 @@ export abstract class DomainEvent<T = any> implements IExtendedDomainEvent<T> {
    * Unique identifier for the event
    */
   public readonly eventId: string;
-  
+
   /**
    * When the event occurred
    */
   public readonly occurredOn: Date;
-  
+
   /**
    * Type of the event, defaults to the class name
    */
   public readonly eventType: string;
-  
+
   /**
    * Event payload
    */
   public readonly payload?: T;
-  
+
   /**
    * Event metadata
    */
@@ -33,7 +36,7 @@ export abstract class DomainEvent<T = any> implements IExtendedDomainEvent<T> {
 
   /**
    * Creates a new domain event
-   * 
+   *
    * @param payload - The event data
    * @param metadata - Optional metadata for the event
    */
@@ -42,10 +45,10 @@ export abstract class DomainEvent<T = any> implements IExtendedDomainEvent<T> {
     this.occurredOn = new Date();
     this.eventType = this.constructor.name;
     this.payload = payload;
-    
+
     this.metadata = {
       timestamp: this.occurredOn,
-      ...(metadata || {})
+      ...(metadata || {}),
     };
   }
 
@@ -56,19 +59,22 @@ export abstract class DomainEvent<T = any> implements IExtendedDomainEvent<T> {
   protected static generateId(): string {
     return LibUtils.getUUID();
   }
-  
+
   /**
    * Create a copy of this event with additional metadata
-   * 
+   *
    * @param metadata - Metadata to merge with existing metadata
    * @returns A new event instance with combined metadata
    */
   public withMetadata(metadata: Partial<IEventMetadata>): DomainEvent<T> {
-    const EventClass = this.constructor as new (payload?: T, metadata?: IEventMetadata) => DomainEvent<T>;
-    
+    const EventClass = this.constructor as new (
+      payload?: T,
+      metadata?: IEventMetadata,
+    ) => DomainEvent<T>;
+
     return new EventClass(this.payload, {
       ...this.metadata,
-      ...metadata
+      ...metadata,
     });
   }
 }

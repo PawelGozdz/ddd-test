@@ -22,7 +22,7 @@ describe('EntityId', () => {
 
   it('should throw error if UUID is invalid', () => {
     const [error] = safeRun(() => EntityId.fromUUID('invalid-uuid'));
-    
+
     expect(error).toBeDefined();
     expect(error).instanceOf(InvalidParameterError);
   });
@@ -36,9 +36,13 @@ describe('EntityId', () => {
 
   it('should throw error if integer is invalid', () => {
     const [error] = safeRun(() => EntityId.fromInteger(-1));
-    
+
     expect(error).toBeDefined();
-    expect(error.message).toEqual(InvalidParameterError.withParameter('entity identifier must be a non-negative integer').message);
+    expect(error.message).toEqual(
+      InvalidParameterError.withParameter(
+        'entity identifier must be a non-negative integer',
+      ).message,
+    );
   });
 
   it('should create a valid EntityId from bigint', () => {
@@ -50,10 +54,14 @@ describe('EntityId', () => {
   });
 
   it('should throw error if bigint is invalid', () => {
-    const [error]  = safeRun(() => EntityId.fromBigInt('invalid-bigint'));
+    const [error] = safeRun(() => EntityId.fromBigInt('invalid-bigint'));
 
     expect(error).toBeInstanceOf(InvalidParameterError);
-    expect(error).toEqual(InvalidParameterError.withParameter('entity identifier must be a valid bigint'));
+    expect(error).toEqual(
+      InvalidParameterError.withParameter(
+        'entity identifier must be a valid bigint',
+      ),
+    );
   });
 
   it('should create a valid EntityId from text', () => {
@@ -64,7 +72,7 @@ describe('EntityId', () => {
   });
 
   it('should throw error if text ID is invalid', () => {
-    const [error]  = safeRun(() => EntityId.fromText(''));
+    const [error] = safeRun(() => EntityId.fromText(''));
 
     expect(error).toBeDefined();
     expect(error).instanceOf(MissingValueError);
@@ -95,6 +103,8 @@ describe('EntityId', () => {
     const entityId = EntityId.fromText('validTextId');
     const json = entityId.toJSON();
 
-    expect(json).toEqual(JSON.stringify({ value: 'validTextId', type: 'text' }));
+    expect(json).toEqual(
+      JSON.stringify({ value: 'validTextId', type: 'text' }),
+    );
   });
 });

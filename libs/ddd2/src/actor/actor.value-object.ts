@@ -1,10 +1,18 @@
-import { InvalidParameterError, BaseValueObject, MissingValueError } from '../core';
+import {
+  InvalidParameterError,
+  BaseValueObject,
+  MissingValueError,
+} from '../core';
 import { LibUtils } from '../utils';
 
 import { ActorType } from './actor-type.enum';
 import { ActorError } from './actor.error';
 
-export class Actor extends BaseValueObject<{type: ActorType, source: string, id?: string}> {
+export class Actor extends BaseValueObject<{
+  type: ActorType;
+  source: string;
+  id?: string;
+}> {
   readonly type: ActorType;
 
   readonly source: string;
@@ -12,13 +20,17 @@ export class Actor extends BaseValueObject<{type: ActorType, source: string, id?
   readonly id?: string;
 
   constructor(type: ActorType, source: string, id?: string) {
-    super({  source, id, type });
+    super({ source, id, type });
     this.type = type;
     this.source = source;
     this.id = id;
   }
 
-  static create(props: { type: ActorType; source: string; id?: string }): Actor {
+  static create(props: {
+    type: ActorType;
+    source: string;
+    id?: string;
+  }): Actor {
     const actor = new Actor(props.type, props.source, props.id);
     if (!actor.validate(props)) {
       throw new InvalidParameterError('Invalid Actor parameters');
@@ -33,7 +45,7 @@ export class Actor extends BaseValueObject<{type: ActorType, source: string, id?
       throw new MissingValueError('Actor.type');
     }
 
-    if(!Object.values(ActorType).includes(type)) {
+    if (!Object.values(ActorType).includes(type)) {
       throw ActorError.withType(type);
     }
 
@@ -42,12 +54,16 @@ export class Actor extends BaseValueObject<{type: ActorType, source: string, id?
     }
 
     if (/[^a-zA-Z0-9]/.test(source)) {
-      throw ActorError.withMessage('Actor.source must contain only alphanumeric characters');
+      throw ActorError.withMessage(
+        'Actor.source must contain only alphanumeric characters',
+      );
     }
 
     if (type === ActorType.SYSTEM) {
       if (id) {
-        throw ActorError.withMessage('Actor.id is not allowed for SYSTEM actor');
+        throw ActorError.withMessage(
+          'Actor.id is not allowed for SYSTEM actor',
+        );
       }
     } else {
       if (!id) {

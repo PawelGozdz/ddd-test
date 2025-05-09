@@ -5,13 +5,13 @@ import { IDomainServiceRegistry } from './domain-service-registry.interface';
  * Singleton providing global access to a domain service registry.
  * Useful for applications that need a centralized access point to domain services
  * without explicit dependency injection.
- * 
+ *
  * @class GlobalServiceRegistry
  */
 export class GlobalServiceRegistry {
   /**
    * Singleton instance of the service registry.
-   * 
+   *
    * @private
    * @static
    * @type {IDomainServiceRegistry}
@@ -21,7 +21,7 @@ export class GlobalServiceRegistry {
   /**
    * Private constructor to prevent direct instantiation.
    * Use getInstance() to get the singleton instance.
-   * 
+   *
    * @private
    */
   private constructor() {}
@@ -29,7 +29,7 @@ export class GlobalServiceRegistry {
   /**
    * Gets the singleton instance of the service registry.
    * Creates a default registry if none exists.
-   * 
+   *
    * @static
    * @returns {IDomainServiceRegistry} The singleton registry instance
    * @example
@@ -46,7 +46,7 @@ export class GlobalServiceRegistry {
   /**
    * Sets the registry instance to use.
    * Useful for replacing the default registry with a custom implementation.
-   * 
+   *
    * @static
    * @param {IDomainServiceRegistry} registry - Custom registry implementation to use
    * @example

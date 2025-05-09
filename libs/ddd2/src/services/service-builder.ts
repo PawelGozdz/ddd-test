@@ -1,15 +1,17 @@
-import { 
-  IEventBus,
-  IUnitOfWork
-} from '../core';
+import { IEventBus, IUnitOfWork } from '../core';
 import { IDomainServiceRegistry } from './domain-service-registry.interface';
-import { IAsyncDomainService, IDomainService, IEventBusAware, IUnitOfWorkAware } from './domain-service.interface';
+import {
+  IAsyncDomainService,
+  IDomainService,
+  IEventBusAware,
+  IUnitOfWorkAware,
+} from './domain-service.interface';
 
 /**
  * Builder for creating and registering domain services
  * with a clear dependency chain. Supports type-safe dependency injection,
  * event bus integration, and Unit of Work integration.
- * 
+ *
  * @class ServiceBuilder
  * @template T - Type of domain service being built
  * @template D - Tuple type representing dependencies (for type-safety)
@@ -17,47 +19,47 @@ import { IAsyncDomainService, IDomainService, IEventBusAware, IUnitOfWorkAware }
 export class ServiceBuilder<T extends IDomainService, D extends any[] = []> {
   /**
    * Array of dependencies to inject into the service
-   * 
+   *
    * @private
    * @type {D}
    */
   private dependencies: D = [] as unknown as D;
-  
+
   /**
    * Factory function that creates the service
-   * 
+   *
    * @private
    * @type {Function}
    */
   private factory: (...args: D) => T;
-  
+
   /**
    * Service identifier
-   * 
+   *
    * @private
    * @type {string}
    */
   private id: string;
-  
+
   /**
    * Optional event bus for event-aware services
-   * 
+   *
    * @private
    * @type {IEventBus | undefined}
    */
   private eventBus?: IEventBus;
-  
+
   /**
    * Optional Unit of Work for transactional services
-   * 
+   *
    * @private
    * @type {IUnitOfWork | undefined}
    */
   private unitOfWork?: IUnitOfWork;
-  
+
   /**
    * Whether to initialize the service asynchronously
-   * 
+   *
    * @private
    * @type {boolean}
    */
@@ -65,7 +67,7 @@ export class ServiceBuilder<T extends IDomainService, D extends any[] = []> {
 
   /**
    * Service builder constructor
-   * 
+   *
    * @param {IDomainServiceRegistry} registry - Service registry where the service will be registered
    * @param {string} serviceId - Service identifier
    * @param {Function} factory - Function creating a service instance
@@ -73,7 +75,7 @@ export class ServiceBuilder<T extends IDomainService, D extends any[] = []> {
   constructor(
     private registry: IDomainServiceRegistry,
     serviceId: string,
-    factory: (...args: D) => T
+    factory: (...args: D) => T,
   ) {
     this.id = serviceId;
     this.factory = factory;
@@ -81,51 +83,60 @@ export class ServiceBuilder<T extends IDomainService, D extends any[] = []> {
 
   /**
    * Adds a dependency on another service
-   * 
+   *
    * @param {string} serviceId - Identifier of the service to depend on
    * @returns {ServiceBuilder<T, [...D, IDomainService]>} Builder for method chaining
    * @throws {Error} If dependency service is not found in registry
    */
-  public dependsOn(serviceId: string): ServiceBuilder<T, [...D, IDomainService]> {
+  public dependsOn(
+    serviceId: string,
+  ): ServiceBuilder<T, [...D, IDomainService]> {
     const dependency = this.registry.get(serviceId);
-    
+
     if (!dependency) {
-      throw new Error(`Dependency service with ID '${serviceId}' not found in registry`);
+      throw new Error(
+        `Dependency service with ID '${serviceId}' not found in registry`,
+      );
     }
-    
+
     return this.withDependency(dependency);
   }
 
   /**
    * Adds a direct dependency instance
-   * 
+   *
    * @template TDep - Type of dependency
    * @param {TDep} dependency - Dependency instance
    * @returns {ServiceBuilder<T, [...D, TDep]>} Builder with updated dependency types
    */
-  public withDependency<TDep>(dependency: TDep): ServiceBuilder<T, [...D, TDep]> {
+  public withDependency<TDep>(
+    dependency: TDep,
+  ): ServiceBuilder<T, [...D, TDep]> {
     // Create a new dependencies array with the added dependency
-    const newDeps = [...this.dependencies, dependency] as unknown as [...D, TDep];
-    
+    const newDeps = [...this.dependencies, dependency] as unknown as [
+      ...D,
+      TDep,
+    ];
+
     // Create a new builder with the updated dependency type
     const newBuilder = new ServiceBuilder<T, [...D, TDep]>(
-      this.registry, 
-      this.id, 
-      this.factory as unknown as (...args: [...D, TDep]) => T
+      this.registry,
+      this.id,
+      this.factory as unknown as (...args: [...D, TDep]) => T,
     );
-    
+
     // Transfer configuration
     (newBuilder as any).dependencies = newDeps;
     if (this.eventBus) newBuilder.withEventBus(this.eventBus);
     if (this.unitOfWork) newBuilder.withUnitOfWork(this.unitOfWork);
     if (this.initializeAsync) newBuilder.withAsyncInitialization();
-    
+
     return newBuilder;
   }
-  
+
   /**
    * Configures the service with an event bus
-   * 
+   *
    * @param {IEventBus} eventBus - Event bus to inject
    * @returns {ServiceBuilder<T, D>} Builder for method chaining
    */
@@ -133,10 +144,10 @@ export class ServiceBuilder<T extends IDomainService, D extends any[] = []> {
     this.eventBus = eventBus;
     return this;
   }
-  
+
   /**
    * Configures the service with a Unit of Work
-   * 
+   *
    * @param {IUnitOfWork} unitOfWork - Unit of Work to inject
    * @returns {ServiceBuilder<T, D>} Builder for method chaining
    */
@@ -144,11 +155,11 @@ export class ServiceBuilder<T extends IDomainService, D extends any[] = []> {
     this.unitOfWork = unitOfWork;
     return this;
   }
-  
+
   /**
    * Marks the service for asynchronous initialization
    * Service must implement IAsyncDomainService
-   * 
+   *
    * @returns {ServiceBuilder<T, D>} Builder for method chaining
    */
   public withAsyncInitialization(): ServiceBuilder<T, D> {
@@ -158,34 +169,34 @@ export class ServiceBuilder<T extends IDomainService, D extends any[] = []> {
 
   /**
    * Creates a service instance with dependencies
-   * 
+   *
    * @returns {Promise<T>} Created service instance
    */
   public async build(): Promise<T> {
     // Create the service with dependencies
     const service = this.factory(...this.dependencies);
-    
+
     // Configure with event bus if applicable
     if (this.eventBus && this.isEventBusAware(service)) {
       service.setEventBus(this.eventBus);
     }
-    
+
     // Configure with Unit of Work if applicable
     if (this.unitOfWork && this.isUnitOfWorkAware(service)) {
       service.setUnitOfWork(this.unitOfWork);
     }
-    
+
     // Initialize asynchronously if applicable
     if (this.initializeAsync && this.isAsyncService(service)) {
       await service.initialize?.();
     }
-    
+
     return service;
   }
 
   /**
    * Creates a service instance and registers it in the registry
-   * 
+   *
    * @returns {Promise<T>} Created and registered service instance
    */
   public async buildAndRegister(): Promise<T> {
@@ -193,56 +204,60 @@ export class ServiceBuilder<T extends IDomainService, D extends any[] = []> {
     this.registry.register(service, this.id);
     return service;
   }
-  
+
   /**
    * Creates a service instance synchronously
    * This maintains backward compatibility with existing code
    * Note: This does not perform async initialization
-   * 
+   *
    * @returns {T} Created service instance
    * @deprecated Use build() instead for full functionality
    */
   public buildSync(): T {
     const service = this.factory(...this.dependencies);
-    
+
     // Configure with event bus if applicable
     if (this.eventBus && this.isEventBusAware(service)) {
       service.setEventBus(this.eventBus);
     }
-    
+
     // Configure with Unit of Work if applicable
     if (this.unitOfWork && this.isUnitOfWorkAware(service)) {
       service.setUnitOfWork(this.unitOfWork);
     }
-    
+
     return service;
   }
-  
+
   /**
    * Checks if a service implements the IEventBusAware interface
-   * 
+   *
    * @private
    * @param {any} service - Service to check
    * @returns {boolean} True if service is event bus aware
    */
   private isEventBusAware(service: any): service is IEventBusAware {
-    return 'setEventBus' in service && typeof service.setEventBus === 'function';
+    return (
+      'setEventBus' in service && typeof service.setEventBus === 'function'
+    );
   }
-  
+
   /**
    * Checks if a service implements the IUnitOfWorkAware interface
-   * 
+   *
    * @private
    * @param {any} service - Service to check
    * @returns {boolean} True if service is Unit of Work aware
    */
   private isUnitOfWorkAware(service: any): service is IUnitOfWorkAware {
-    return 'setUnitOfWork' in service && typeof service.setUnitOfWork === 'function';
+    return (
+      'setUnitOfWork' in service && typeof service.setUnitOfWork === 'function'
+    );
   }
-  
+
   /**
    * Checks if a service implements the IAsyncDomainService interface
-   * 
+   *
    * @private
    * @param {any} service - Service to check
    * @returns {boolean} True if service is async-capable

@@ -15,10 +15,10 @@ describe('createDomainEvent', () => {
     // Arrange
     const eventType = 'TestEvent';
     const payload = { data: 'test data' };
-    
+
     // Act
     const event = createDomainEvent(eventType, payload);
-    
+
     // Assert
     expect(event.eventType).toBe(eventType);
     expect(event.payload).toEqual(payload);
@@ -29,13 +29,13 @@ describe('createDomainEvent', () => {
     const eventType = 'TestEvent';
     const payload = { data: 'test data' };
     const mockDate = new Date('2023-01-01T00:00:00Z');
-    
+
     // Mock Date constructor to return a fixed date
     vi.spyOn(global, 'Date').mockImplementation(() => mockDate as any);
-    
+
     // Act
     const event = createDomainEvent(eventType, payload);
-    
+
     // Assert
     expect(event.metadata).toBeDefined();
     expect(event.metadata.eventId).toBeTypeOf('string');
@@ -50,18 +50,18 @@ describe('createDomainEvent', () => {
     const customMetadata = {
       correlationId,
       userId: 'user-456',
-      customField: 'custom value'
+      customField: 'custom value',
     };
-    
+
     // Act
     const event = createDomainEvent(eventType, payload, customMetadata);
-    
+
     // Assert
     expect(event.metadata).toMatchObject({
       eventId: expect.any(String),
       correlationId,
       userId: 'user-456',
-      customField: 'custom value'
+      customField: 'custom value',
     });
   });
 
@@ -70,12 +70,12 @@ describe('createDomainEvent', () => {
     const eventType = 'TestEvent';
     const payload = { data: 'test data' };
     const customMetadata = {
-      eventId: 'custom-event-id'
+      eventId: 'custom-event-id',
     };
-    
+
     // Act
     const event = createDomainEvent(eventType, payload, customMetadata);
-    
+
     // Assert
     expect(event.metadata.eventId).toBe('custom-event-id');
   });
@@ -84,10 +84,10 @@ describe('createDomainEvent', () => {
     // Arrange
     const eventType = 'TestEvent';
     const payload = null;
-    
+
     // Act
     const event = createDomainEvent(eventType, payload);
-    
+
     // Assert
     expect(event.eventType).toBe(eventType);
     expect(event.payload).toBeNull();

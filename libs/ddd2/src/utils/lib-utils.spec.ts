@@ -14,11 +14,11 @@ describe('LibUtils', () => {
       // Arrange & Act
       const result1 = LibUtils.getUUID(null);
       const result2 = LibUtils.getUUID(undefined);
-      // @ts-expect-error
+      // @ts-expect-error for test
       const result3 = LibUtils.getUUID('invalid');
-      // @ts-expect-error
+      // @ts-expect-error for test
       const result4 = LibUtils.getUUID(123);
-      
+
       // Assert
       // Regardless of invalid input, the function should return a UUID
       expect(result1).toBe('123e4567-e89b-12d3-a456-426614174000');
@@ -26,14 +26,14 @@ describe('LibUtils', () => {
       expect(result3).toBe('123e4567-e89b-12d3-a456-426614174000');
       expect(result4).toBe('123e4567-e89b-12d3-a456-426614174000');
     });
-    
+
     it('should return a UUID v4 when type is v4', () => {
       // Arrange
       const type = 'v4' as const;
-      
+
       // Act
       const result = LibUtils.getUUID(type);
-      
+
       // Assert
       expect(result).toBe('123e4567-e89b-12d3-a456-426614174000');
     });
@@ -41,7 +41,7 @@ describe('LibUtils', () => {
     it('should return a UUID v4 when type is not specified', () => {
       // Arrange & Act
       const result = LibUtils.getUUID();
-      
+
       // Assert
       expect(result).toBe('123e4567-e89b-12d3-a456-426614174000');
     });
@@ -54,27 +54,27 @@ describe('LibUtils', () => {
       expect(LibUtils.isEmpty(Number.MIN_SAFE_INTEGER)).toBe(false);
       expect(LibUtils.isEmpty(Infinity)).toBe(false);
       expect(LibUtils.isEmpty(-Infinity)).toBe(false);
-      
+
       // Special objects
       expect(LibUtils.isEmpty(Object.create(null))).toBe(true);
-      
+
       // Functions
       expect(LibUtils.isEmpty(() => {})).toBe(true);
-      
+
       // Symbols
       expect(LibUtils.isEmpty(Symbol())).toBe(true);
-      
+
       // Map/Set with empty/undefined elements
       const mapWithUndefined = new Map([[undefined, undefined]]);
       const setWithUndefined = new Set([undefined]);
       expect(LibUtils.isEmpty(mapWithUndefined)).toBe(false);
       expect(LibUtils.isEmpty(setWithUndefined)).toBe(false);
-      
+
       // Object with non-enumerable properties
       const objWithNonEnumerable = {};
-      Object.defineProperty(objWithNonEnumerable, 'hiddenProp', { 
-        value: 'value', 
-        enumerable: false 
+      Object.defineProperty(objWithNonEnumerable, 'hiddenProp', {
+        value: 'value',
+        enumerable: false,
       });
       expect(LibUtils.isEmpty(objWithNonEnumerable)).toBe(true);
     });
@@ -105,7 +105,7 @@ describe('LibUtils', () => {
       const nonEmptyMap = new Map([['key', 'value']]);
       const emptySet = new Set();
       const nonEmptySet = new Set([1]);
-      
+
       expect(LibUtils.isEmpty(emptyMap)).toBe(true);
       expect(LibUtils.isEmpty(nonEmptyMap)).toBe(false);
       expect(LibUtils.isEmpty(emptySet)).toBe(true);
@@ -115,7 +115,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate arrays', () => {
       const emptyArray: any[] = [];
       const nonEmptyArray = [1, 2, 3];
-      
+
       expect(LibUtils.isEmpty(emptyArray)).toBe(true);
       expect(LibUtils.isEmpty(nonEmptyArray)).toBe(false);
     });
@@ -123,7 +123,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate objects', () => {
       const emptyObject = {};
       const nonEmptyObject = { key: 'value' };
-      
+
       expect(LibUtils.isEmpty(emptyObject)).toBe(true);
       expect(LibUtils.isEmpty(nonEmptyObject)).toBe(false);
     });
@@ -131,7 +131,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate Date objects', () => {
       const validDate = new Date();
       const invalidDate = new Date('invalid date');
-      
+
       expect(LibUtils.isEmpty(validDate)).toBe(false);
       expect(LibUtils.isEmpty(invalidDate)).toBe(true);
     });
@@ -144,27 +144,27 @@ describe('LibUtils', () => {
       expect(LibUtils.hasValue(Number.MIN_SAFE_INTEGER)).toBe(true);
       expect(LibUtils.hasValue(Infinity)).toBe(true);
       expect(LibUtils.hasValue(-Infinity)).toBe(true);
-      
+
       // Special objects
       expect(LibUtils.hasValue(Object.create(null))).toBe(false);
-      
+
       // Functions
       expect(LibUtils.hasValue(() => {})).toBe(false);
-      
+
       // Symbols
       expect(LibUtils.hasValue(Symbol())).toBe(false);
-      
+
       // Map/Set with empty/undefined elements
       const mapWithUndefined = new Map([[undefined, undefined]]);
       const setWithUndefined = new Set([undefined]);
       expect(LibUtils.hasValue(mapWithUndefined)).toBe(true);
       expect(LibUtils.hasValue(setWithUndefined)).toBe(true);
-      
+
       // Object with non-enumerable properties
       const objWithNonEnumerable = {};
-      Object.defineProperty(objWithNonEnumerable, 'hiddenProp', { 
-        value: 'value', 
-        enumerable: false 
+      Object.defineProperty(objWithNonEnumerable, 'hiddenProp', {
+        value: 'value',
+        enumerable: false,
       });
       expect(LibUtils.hasValue(objWithNonEnumerable)).toBe(false);
     });
@@ -195,7 +195,7 @@ describe('LibUtils', () => {
       const nonEmptyMap = new Map([['key', 'value']]);
       const emptySet = new Set();
       const nonEmptySet = new Set([1]);
-      
+
       expect(LibUtils.hasValue(emptyMap)).toBe(false);
       expect(LibUtils.hasValue(nonEmptyMap)).toBe(true);
       expect(LibUtils.hasValue(emptySet)).toBe(false);
@@ -205,7 +205,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate arrays', () => {
       const emptyArray: any[] = [];
       const nonEmptyArray = [1, 2, 3];
-      
+
       expect(LibUtils.hasValue(emptyArray)).toBe(false);
       expect(LibUtils.hasValue(nonEmptyArray)).toBe(true);
     });
@@ -213,7 +213,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate objects', () => {
       const emptyObject = {};
       const nonEmptyObject = { key: 'value' };
-      
+
       expect(LibUtils.hasValue(emptyObject)).toBe(false);
       expect(LibUtils.hasValue(nonEmptyObject)).toBe(true);
     });
@@ -221,7 +221,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate Date objects', () => {
       const validDate = new Date();
       const invalidDate = new Date('invalid date');
-      
+
       expect(LibUtils.hasValue(validDate)).toBe(true);
       expect(LibUtils.hasValue(invalidDate)).toBe(false);
     });
@@ -234,27 +234,27 @@ describe('LibUtils', () => {
       expect(LibUtils.isNotEmpty(Number.MIN_SAFE_INTEGER)).toBe(true);
       expect(LibUtils.isNotEmpty(Infinity)).toBe(true);
       expect(LibUtils.isNotEmpty(-Infinity)).toBe(true);
-      
+
       // Special objects
       expect(LibUtils.isNotEmpty(Object.create(null))).toBe(false);
-      
+
       // Functions
       expect(LibUtils.isNotEmpty(() => {})).toBe(false);
-      
+
       // Symbols
       expect(LibUtils.isNotEmpty(Symbol())).toBe(false);
-      
+
       // Map/Set with empty/undefined elements
       const mapWithUndefined = new Map([[undefined, undefined]]);
       const setWithUndefined = new Set([undefined]);
       expect(LibUtils.isNotEmpty(mapWithUndefined)).toBe(true);
       expect(LibUtils.isNotEmpty(setWithUndefined)).toBe(true);
-      
+
       // Object with non-enumerable properties
       const objWithNonEnumerable = {};
-      Object.defineProperty(objWithNonEnumerable, 'hiddenProp', { 
-        value: 'value', 
-        enumerable: false 
+      Object.defineProperty(objWithNonEnumerable, 'hiddenProp', {
+        value: 'value',
+        enumerable: false,
       });
       expect(LibUtils.isNotEmpty(objWithNonEnumerable)).toBe(false);
     });
@@ -285,7 +285,7 @@ describe('LibUtils', () => {
       const nonEmptyMap = new Map([['key', 'value']]);
       const emptySet = new Set();
       const nonEmptySet = new Set([1]);
-      
+
       expect(LibUtils.isNotEmpty(emptyMap)).toBe(false);
       expect(LibUtils.isNotEmpty(nonEmptyMap)).toBe(true);
       expect(LibUtils.isNotEmpty(emptySet)).toBe(false);
@@ -295,7 +295,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate arrays', () => {
       const emptyArray: any[] = [];
       const nonEmptyArray = [1, 2, 3];
-      
+
       expect(LibUtils.isNotEmpty(emptyArray)).toBe(false);
       expect(LibUtils.isNotEmpty(nonEmptyArray)).toBe(true);
     });
@@ -303,7 +303,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate objects', () => {
       const emptyObject = {};
       const nonEmptyObject = { key: 'value' };
-      
+
       expect(LibUtils.isNotEmpty(emptyObject)).toBe(false);
       expect(LibUtils.isNotEmpty(nonEmptyObject)).toBe(true);
     });
@@ -311,7 +311,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate Date objects', () => {
       const validDate = new Date();
       const invalidDate = new Date('invalid date');
-      
+
       expect(LibUtils.isNotEmpty(validDate)).toBe(true);
       expect(LibUtils.isNotEmpty(invalidDate)).toBe(false);
     });
@@ -324,27 +324,27 @@ describe('LibUtils', () => {
       expect(LibUtils.isTruthy(Number.MIN_SAFE_INTEGER)).toBe(true);
       expect(LibUtils.isTruthy(Infinity)).toBe(true);
       expect(LibUtils.isTruthy(-Infinity)).toBe(true);
-      
+
       // Special objects
       expect(LibUtils.isTruthy(Object.create(null))).toBe(false);
-      
+
       // Functions
       expect(LibUtils.isTruthy(() => {})).toBe(false);
-      
+
       // Symbols
       expect(LibUtils.isTruthy(Symbol())).toBe(false);
-      
+
       // Map/Set with empty/undefined elements
       const mapWithUndefined = new Map([[undefined, undefined]]);
       const setWithUndefined = new Set([undefined]);
       expect(LibUtils.isTruthy(mapWithUndefined)).toBe(true);
       expect(LibUtils.isTruthy(setWithUndefined)).toBe(true);
-      
+
       // Object with non-enumerable properties
       const objWithNonEnumerable = {};
-      Object.defineProperty(objWithNonEnumerable, 'hiddenProp', { 
-        value: 'value', 
-        enumerable: false 
+      Object.defineProperty(objWithNonEnumerable, 'hiddenProp', {
+        value: 'value',
+        enumerable: false,
       });
       expect(LibUtils.isTruthy(objWithNonEnumerable)).toBe(false);
     });
@@ -375,7 +375,7 @@ describe('LibUtils', () => {
       const nonEmptyMap = new Map([['key', 'value']]);
       const emptySet = new Set();
       const nonEmptySet = new Set([1]);
-      
+
       expect(LibUtils.isTruthy(emptyMap)).toBe(false);
       expect(LibUtils.isTruthy(nonEmptyMap)).toBe(true);
       expect(LibUtils.isTruthy(emptySet)).toBe(false);
@@ -385,7 +385,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate arrays', () => {
       const emptyArray: any[] = [];
       const nonEmptyArray = [1, 2, 3];
-      
+
       expect(LibUtils.isTruthy(emptyArray)).toBe(false);
       expect(LibUtils.isTruthy(nonEmptyArray)).toBe(true);
     });
@@ -393,7 +393,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate objects', () => {
       const emptyObject = {};
       const nonEmptyObject = { key: 'value' };
-      
+
       expect(LibUtils.isTruthy(emptyObject)).toBe(false);
       expect(LibUtils.isTruthy(nonEmptyObject)).toBe(true);
     });
@@ -401,7 +401,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate Date objects', () => {
       const validDate = new Date();
       const invalidDate = new Date('invalid date');
-      
+
       expect(LibUtils.isTruthy(validDate)).toBe(true);
       expect(LibUtils.isTruthy(invalidDate)).toBe(false);
     });
@@ -414,27 +414,27 @@ describe('LibUtils', () => {
       expect(LibUtils.isFalsy(Number.MIN_SAFE_INTEGER)).toBe(false);
       expect(LibUtils.isFalsy(Infinity)).toBe(false);
       expect(LibUtils.isFalsy(-Infinity)).toBe(false);
-      
+
       // Special objects
       expect(LibUtils.isFalsy(Object.create(null))).toBe(true);
-      
+
       // Functions
       expect(LibUtils.isFalsy(() => {})).toBe(true);
-      
+
       // Symbols
       expect(LibUtils.isFalsy(Symbol())).toBe(true);
-      
+
       // Map/Set with empty/undefined elements
       const mapWithUndefined = new Map([[undefined, undefined]]);
       const setWithUndefined = new Set([undefined]);
       expect(LibUtils.isFalsy(mapWithUndefined)).toBe(false);
       expect(LibUtils.isFalsy(setWithUndefined)).toBe(false);
-      
+
       // Object with non-enumerable properties
       const objWithNonEnumerable = {};
-      Object.defineProperty(objWithNonEnumerable, 'hiddenProp', { 
-        value: 'value', 
-        enumerable: false 
+      Object.defineProperty(objWithNonEnumerable, 'hiddenProp', {
+        value: 'value',
+        enumerable: false,
       });
       expect(LibUtils.isFalsy(objWithNonEnumerable)).toBe(true);
     });
@@ -465,7 +465,7 @@ describe('LibUtils', () => {
       const nonEmptyMap = new Map([['key', 'value']]);
       const emptySet = new Set();
       const nonEmptySet = new Set([1]);
-      
+
       expect(LibUtils.isFalsy(emptyMap)).toBe(true);
       expect(LibUtils.isFalsy(nonEmptyMap)).toBe(false);
       expect(LibUtils.isFalsy(emptySet)).toBe(true);
@@ -475,7 +475,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate arrays', () => {
       const emptyArray: any[] = [];
       const nonEmptyArray = [1, 2, 3];
-      
+
       expect(LibUtils.isFalsy(emptyArray)).toBe(true);
       expect(LibUtils.isFalsy(nonEmptyArray)).toBe(false);
     });
@@ -483,7 +483,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate objects', () => {
       const emptyObject = {};
       const nonEmptyObject = { key: 'value' };
-      
+
       expect(LibUtils.isFalsy(emptyObject)).toBe(true);
       expect(LibUtils.isFalsy(nonEmptyObject)).toBe(false);
     });
@@ -491,7 +491,7 @@ describe('LibUtils', () => {
     it('should correctly evaluate Date objects', () => {
       const validDate = new Date();
       const invalidDate = new Date('invalid date');
-      
+
       expect(LibUtils.isFalsy(validDate)).toBe(false);
       expect(LibUtils.isFalsy(invalidDate)).toBe(true);
     });
@@ -505,18 +505,18 @@ describe('LibUtils', () => {
     afterEach(() => {
       vi.useRealTimers();
     });
-    
+
     it('should handle edge cases for sleep duration', async () => {
       // Zero wait time
       const zeroPromise = LibUtils.sleep(0);
       vi.advanceTimersByTime(0);
       await expect(zeroPromise).resolves.toBeUndefined();
-      
+
       // Negative time (should immediately resolve the promise)
       const negativePromise = LibUtils.sleep(-1);
       vi.advanceTimersByTime(0);
       await expect(negativePromise).resolves.toBeUndefined();
-      
+
       // Very large value (checking if it doesn't overflow)
       const largePromise = LibUtils.sleep(Number.MAX_SAFE_INTEGER);
       vi.advanceTimersByTime(Number.MAX_SAFE_INTEGER);
@@ -527,10 +527,10 @@ describe('LibUtils', () => {
       // Arrange
       const ms = 1000;
       const sleepPromise = LibUtils.sleep(ms);
-      
+
       // Act
       vi.advanceTimersByTime(ms);
-      
+
       // Assert
       await expect(sleepPromise).resolves.toBeUndefined();
     });
@@ -545,10 +545,10 @@ describe('LibUtils', () => {
       // Arrange
       const validUuid = '123e4567-e89b-12d3-a456-426614174000';
       (validate as any).mockReturnValue(true);
-      
+
       // Act
       const result = LibUtils.isValidUUID(validUuid);
-      
+
       // Assert
       expect(validate).toHaveBeenCalledWith(validUuid);
       expect(result).toBe(true);
@@ -558,10 +558,10 @@ describe('LibUtils', () => {
       // Arrange
       const invalidUuid = 'not-a-uuid';
       (validate as any).mockReturnValue(false);
-      
+
       // Act
       const result = LibUtils.isValidUUID(invalidUuid);
-      
+
       // Assert
       expect(validate).toHaveBeenCalledWith(invalidUuid);
       expect(result).toBe(false);
@@ -574,34 +574,34 @@ describe('LibUtils', () => {
       expect(LibUtils.isValidInteger(Number.MAX_SAFE_INTEGER)).toBe(true);
       expect(LibUtils.isValidInteger(2147483647)).toBe(true); // Typical 32-bit int max
       expect(LibUtils.isValidInteger(4294967295)).toBe(true); // Typical uint32 max value
-      expect(LibUtils.isValidInteger(0x7FFFFFFF)).toBe(true); // Maximum 32-bit value in hex
+      expect(LibUtils.isValidInteger(0x7fffffff)).toBe(true); // Maximum 32-bit value in hex
       expect(LibUtils.isValidInteger(0)).toBe(true);
-      
+
       // Cases that should return false
       expect(LibUtils.isValidInteger(Number.MAX_VALUE)).toBe(true); // For JS it's an integer
       expect(LibUtils.isValidInteger(Number.POSITIVE_INFINITY)).toBe(false);
     });
-    
+
     it('should return true for valid integers', () => {
       const validIntegers = [0, 1, 42, 100];
-      
-      validIntegers.forEach(num => {
+
+      validIntegers.forEach((num) => {
         expect(LibUtils.isValidInteger(num)).toBe(true);
       });
     });
 
     it('should return false for negative integers', () => {
       const negativeIntegers = [-1, -42, -100];
-      
-      negativeIntegers.forEach(num => {
+
+      negativeIntegers.forEach((num) => {
         expect(LibUtils.isValidInteger(num)).toBe(false);
       });
     });
 
     it('should return false for floating point numbers', () => {
       const floats = [0.5, 1.1, 42.42];
-      
-      floats.forEach(num => {
+
+      floats.forEach((num) => {
         expect(LibUtils.isValidInteger(num)).toBe(false);
       });
     });
@@ -614,38 +614,43 @@ describe('LibUtils', () => {
         '9007199254740992', // MAX_SAFE_INTEGER + 1
         '18446744073709551615', // Maximum value of uint64
         '340282366920938463463374607431768211455', // 2^128 - 1
-        '115792089237316195423570985008687907853269984665640564039457584007913129639935' // 2^256 - 1, typical for blockchain
+        '115792089237316195423570985008687907853269984665640564039457584007913129639935', // 2^256 - 1, typical for blockchain
       ];
-      
-      edgeCases.forEach(str => {
+
+      edgeCases.forEach((str) => {
         expect(LibUtils.isValidBigInt(str)).toBe(true);
       });
-      
+
       // Cases that should return false
       expect(LibUtils.isValidBigInt('9.9e+100')).toBe(false); // Scientific notation
       expect(LibUtils.isValidBigInt('0x123')).toBe(false); // Hex
       expect(LibUtils.isValidBigInt('0b101')).toBe(false); // Binary
       expect(LibUtils.isValidBigInt('0o777')).toBe(false); // Octal
     });
-    
+
     it('should return true for valid big integers strings', () => {
-      const validBigIntStrings = ['0', '1', '9007199254740991', '12345678901234567890'];
-      
-      validBigIntStrings.forEach(str => {
+      const validBigIntStrings = [
+        '0',
+        '1',
+        '9007199254740991',
+        '12345678901234567890',
+      ];
+
+      validBigIntStrings.forEach((str) => {
         expect(LibUtils.isValidBigInt(str)).toBe(true);
       });
     });
 
     it('should return false for invalid big integer strings', () => {
       const invalidBigIntStrings = [
-        '-1',          // Negative
-        '3.14',        // Float
-        'abc',         // Non-numeric
-        '123abc',      // Mixed
-        '',            // Empty
+        '-1', // Negative
+        '3.14', // Float
+        'abc', // Non-numeric
+        '123abc', // Mixed
+        '', // Empty
       ];
-      
-      invalidBigIntStrings.forEach(str => {
+
+      invalidBigIntStrings.forEach((str) => {
         expect(LibUtils.isValidBigInt(str)).toBe(false);
       });
     });
@@ -662,13 +667,13 @@ describe('LibUtils', () => {
         '_-_-', // Only special characters
         'a'.repeat(255), // Very long string
         'a_'.repeat(100), // Repeating pattern
-        'z9_-Z' // Mix of all allowed characters
+        'z9_-Z', // Mix of all allowed characters
       ];
-      
-      edgeCases.forEach(id => {
+
+      edgeCases.forEach((id) => {
         expect(LibUtils.isValidTextId(id)).toBe(true);
       });
-      
+
       // Cases that should return false
       expect(LibUtils.isValidTextId(' ')).toBe(false); // Space
       expect(LibUtils.isValidTextId('\t')).toBe(false); // Tab
@@ -677,32 +682,25 @@ describe('LibUtils', () => {
       expect(LibUtils.isValidTextId('ą')).toBe(false); // Diacritical mark
       expect(LibUtils.isValidTextId('😀')).toBe(false); // Emoji
     });
-    
+
     it('should return true for valid text IDs', () => {
-      const validTextIds = [
-        'abc',
-        'ABC',
-        '123',
-        'abc_123',
-        'abc-123',
-        'a_b-c',
-      ];
-      
-      validTextIds.forEach(id => {
+      const validTextIds = ['abc', 'ABC', '123', 'abc_123', 'abc-123', 'a_b-c'];
+
+      validTextIds.forEach((id) => {
         expect(LibUtils.isValidTextId(id)).toBe(true);
       });
     });
 
     it('should return false for invalid text IDs', () => {
       const invalidTextIds = [
-        '',            // Empty
-        'abc 123',     // Contains space
-        'abc.123',     // Contains period
-        'abc#123',     // Contains special character
-        'abc@123',     // Contains special character
+        '', // Empty
+        'abc 123', // Contains space
+        'abc.123', // Contains period
+        'abc#123', // Contains special character
+        'abc@123', // Contains special character
       ];
-      
-      invalidTextIds.forEach(id => {
+
+      invalidTextIds.forEach((id) => {
         expect(LibUtils.isValidTextId(id)).toBe(false);
       });
     });
@@ -717,22 +715,22 @@ describe('LibUtils', () => {
         [Number.MAX_SAFE_INTEGER, String(Number.MAX_SAFE_INTEGER)],
         [0, '0'],
         [1e20, '100000000000000000000'], // Scientific notation to string
-        [0xff, '255'] // Hex to string
+        [0xff, '255'], // Hex to string
       ];
-      
+
       // Act & Assert
       extremeValues.forEach(([value, expected]) => {
         expect(LibUtils.normalizeIdToString(value as any)).toBe(expected);
       });
     });
-    
+
     it('should convert bigint to string', () => {
       // Arrange
       const bigIntValue = BigInt('12345678901234567890');
-      
+
       // Act
       const result = LibUtils.normalizeIdToString(bigIntValue);
-      
+
       // Assert
       expect(result).toBe('12345678901234567890');
       expect(typeof result).toBe('string');
@@ -741,10 +739,10 @@ describe('LibUtils', () => {
     it('should convert number to string', () => {
       // Arrange
       const numberValue = 12345;
-      
+
       // Act
       const result = LibUtils.normalizeIdToString(numberValue);
-      
+
       // Assert
       expect(result).toBe('12345');
       expect(typeof result).toBe('string');
@@ -753,10 +751,10 @@ describe('LibUtils', () => {
     it('should return string as is', () => {
       // Arrange
       const stringValue = '12345abc';
-      
+
       // Act
       const result = LibUtils.normalizeIdToString(stringValue);
-      
+
       // Assert
       expect(result).toBe('12345abc');
       expect(typeof result).toBe('string');
@@ -768,32 +766,32 @@ describe('LibUtils', () => {
       // Arrange
       const obj1: any = { a: 1 };
       const obj2: any = { a: 1 };
-      
+
       // Creating circular references
       obj1.self = obj1;
       obj2.self = obj2;
-      
+
       // Act & Assert
       expect(() => LibUtils.deepEqual(obj1, obj2)).not.toThrow(); // Should not cause stack overflow
       // Expected result might be false because deepEqual may not handle circular references
       // This test mainly checks if the function doesn't cause an error
     });
-    
+
     it('should handle objects with prototype chain', () => {
       // Arrange
       class TestClass {
         prop = 'value';
       }
-      
+
       const obj1 = new TestClass();
       const obj2 = new TestClass();
       const obj3 = { prop: 'value' }; // Similar object but without prototype
-      
+
       // Act & Assert
       expect(LibUtils.deepEqual(obj1, obj2)).toBe(true);
       expect(LibUtils.deepEqual(obj1, obj3)).toBe(true); // Should compare only own properties
     });
-    
+
     it('should handle edge cases for primitives', () => {
       // Arrange
       const edgeCases = [
@@ -802,15 +800,15 @@ describe('LibUtils', () => {
         [Infinity, Infinity],
         [-Infinity, -Infinity],
         [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
-        [Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER]
+        [Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER],
       ];
-      
+
       // Act & Assert
       edgeCases.forEach(([a, b]) => {
         expect(LibUtils.deepEqual(a, b)).toBe(true);
       });
     });
-    
+
     it('should return true for identical primitives', () => {
       // Arrange
       const testCases = [
@@ -818,9 +816,9 @@ describe('LibUtils', () => {
         ['test', 'test'],
         [true, true],
         [null, null],
-        [undefined, undefined]
+        [undefined, undefined],
       ];
-      
+
       // Act & Assert
       testCases.forEach(([a, b]) => {
         expect(LibUtils.deepEqual(a, b)).toBe(true);
@@ -834,9 +832,9 @@ describe('LibUtils', () => {
         ['test', 'different'],
         [true, false],
         [null, undefined],
-        [1, '1']
+        [1, '1'],
       ];
-      
+
       // Act & Assert
       testCases.forEach(([a, b]) => {
         expect(LibUtils.deepEqual(a, b)).toBe(false);
@@ -847,10 +845,10 @@ describe('LibUtils', () => {
       // Arrange
       const obj1 = { a: 1, b: 'test', c: true };
       const obj2 = { a: 1, b: 'test', c: true };
-      
+
       // Act
       const result = LibUtils.deepEqual(obj1, obj2);
-      
+
       // Assert
       expect(result).toBe(true);
     });
@@ -859,10 +857,10 @@ describe('LibUtils', () => {
       // Arrange
       const obj1 = { a: 1, b: 'test', c: true };
       const obj2 = { a: 1, b: 'different', c: true };
-      
+
       // Act
       const result = LibUtils.deepEqual(obj1, obj2);
-      
+
       // Assert
       expect(result).toBe(false);
     });
@@ -871,10 +869,10 @@ describe('LibUtils', () => {
       // Arrange
       const obj1 = { a: 1, b: 'test', c: true };
       const obj2 = { a: 1, b: 'test', d: true };
-      
+
       // Act
       const result = LibUtils.deepEqual(obj1, obj2);
-      
+
       // Assert
       expect(result).toBe(false);
     });
@@ -883,10 +881,10 @@ describe('LibUtils', () => {
       // Arrange
       const obj1 = { a: 1, b: 'test', c: true };
       const obj2 = { a: 1, b: 'test' };
-      
+
       // Act
       const result = LibUtils.deepEqual(obj1, obj2);
-      
+
       // Assert
       expect(result).toBe(false);
     });
@@ -896,43 +894,43 @@ describe('LibUtils', () => {
       const obj1 = { a: 1, b: { c: 2, d: { e: 3 } } };
       const obj2 = { a: 1, b: { c: 2, d: { e: 3 } } };
       const obj3 = { a: 1, b: { c: 2, d: { e: 4 } } };
-      
+
       // Act & Assert
       expect(LibUtils.deepEqual(obj1, obj2)).toBe(true);
       expect(LibUtils.deepEqual(obj1, obj3)).toBe(false);
     });
-    
+
     it('should handle arrays correctly', () => {
       // Arrange
       const arr1 = [1, 2, 3];
       const arr2 = [1, 2, 3];
       const arr3 = [1, 2, 4];
-      
+
       // Act & Assert
       expect(LibUtils.deepEqual(arr1, arr2)).toBe(true);
       expect(LibUtils.deepEqual(arr1, arr3)).toBe(false);
     });
-    
+
     it('should handle complex nested structures', () => {
       // Arrange
       const complex1 = {
         a: 1,
         b: [1, 2, { c: 3 }],
-        d: { e: 4, f: [5, 6] }
+        d: { e: 4, f: [5, 6] },
       };
-      
+
       const complex2 = {
         a: 1,
         b: [1, 2, { c: 3 }],
-        d: { e: 4, f: [5, 6] }
+        d: { e: 4, f: [5, 6] },
       };
-      
+
       const complex3 = {
         a: 1,
         b: [1, 2, { c: 3 }],
-        d: { e: 4, f: [5, 7] }  // Different value here
+        d: { e: 4, f: [5, 7] }, // Different value here
       };
-      
+
       // Act & Assert
       expect(LibUtils.deepEqual(complex1, complex2)).toBe(true);
       expect(LibUtils.deepEqual(complex1, complex3)).toBe(false);

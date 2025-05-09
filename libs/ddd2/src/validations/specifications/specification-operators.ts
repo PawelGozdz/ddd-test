@@ -115,21 +115,31 @@ export const Specification = {
   /**
    * Tworzy specyfikację sprawdzającą równość właściwości
    */
-  propertyEquals<T>(propertyName: keyof T, expectedValue: any): ISpecification<T> {
+  propertyEquals<T>(
+    propertyName: keyof T,
+    expectedValue: any,
+  ): ISpecification<T> {
     return new PropertyEqualsSpecification<T>(propertyName, expectedValue);
   },
 
   /**
    * Tworzy specyfikację sprawdzającą zawieranie się właściwości w zbiorze
    */
-  propertyIn<T>(propertyName: keyof T, possibleValues: any[]): ISpecification<T> {
+  propertyIn<T>(
+    propertyName: keyof T,
+    possibleValues: any[],
+  ): ISpecification<T> {
     return new PropertyInSpecification<T>(propertyName, possibleValues);
   },
 
   /**
    * Tworzy specyfikację sprawdzającą zakres wartości
    */
-  propertyBetween<T>(propertyName: keyof T, min: number, max: number): ISpecification<T> {
+  propertyBetween<T>(
+    propertyName: keyof T,
+    min: number,
+    max: number,
+  ): ISpecification<T> {
     return new PropertyBetweenSpecification<T>(propertyName, min, max);
   },
 

@@ -1,10 +1,10 @@
-import { 
-  IDomainEvent, 
-  IEventBus, 
+import {
+  IDomainEvent,
+  IEventBus,
   EventBusMiddleware,
-  EventHandlerFn, 
-  IEventHandler, 
-  isEventHandler 
+  EventHandlerFn,
+  IEventHandler,
+  isEventHandler,
 } from '../../core';
 
 /**
@@ -15,12 +15,12 @@ export interface InMemoryEventBusOptions {
    * Enable or disable logging
    */
   enableLogging?: boolean;
-  
+
   /**
    * Custom error handler
    */
   errorHandler?: (error: Error, eventType: string) => void;
-  
+
   /**
    * Middleware pipeline to process events
    */
@@ -32,21 +32,22 @@ export interface InMemoryEventBusOptions {
  * Handles event publication and subscription in a simple in-memory fashion
  */
 export class InMemoryEventBus implements IEventBus {
-  private handlers: Map<string, Set<EventHandlerFn<any> | IEventHandler<any>>> = new Map();
+  private handlers: Map<string, Set<EventHandlerFn<any> | IEventHandler<any>>> =
+    new Map();
   private readonly options: InMemoryEventBusOptions;
   private publishPipeline: (event: IDomainEvent) => Promise<void>;
 
   /**
    * Create a new in-memory event bus
-   * 
+   *
    * @param options - Configuration options
    */
   constructor(options: InMemoryEventBusOptions = {}) {
     this.options = {
       enableLogging: false,
-      ...options
+      ...options,
     };
-    
+
     // Build the middleware pipeline
     this.publishPipeline = this.buildPublishPipeline();
   }
@@ -54,7 +55,9 @@ export class InMemoryEventBus implements IEventBus {
   /**
    * Get the event type name from a constructor
    */
-  private getEventName<T extends IDomainEvent>(eventType: new (...args: any[]) => T): string {
+  private getEventName<T extends IDomainEvent>(
+    eventType: new (...args: any[]) => T,
+  ): string {
     const prototype = eventType.prototype;
     if (prototype && 'eventType' in prototype) {
       return prototype.eventType;
@@ -85,7 +88,7 @@ export class InMemoryEventBus implements IEventBus {
     }
 
     this.handlers.get(eventName)!.add(handler);
-    
+
     if (this.options.enableLogging) {
       console.log(`[EventBus] Handler subscribed to ${eventName}`);
     }
@@ -105,7 +108,7 @@ export class InMemoryEventBus implements IEventBus {
     }
 
     this.handlers.get(eventName)!.add(handler);
-    
+
     if (this.options.enableLogging) {
       console.log(`[EventBus] Class handler registered for ${eventName}`);
     }
@@ -126,7 +129,7 @@ export class InMemoryEventBus implements IEventBus {
       if (handlers.size === 0) {
         this.handlers.delete(eventName);
       }
-      
+
       if (this.options.enableLogging) {
         console.log(`[EventBus] Handler unsubscribed from ${eventName}`);
       }
@@ -149,17 +152,19 @@ export class InMemoryEventBus implements IEventBus {
         }
         return;
       }
-      
+
       if (this.options.enableLogging) {
-        console.log(`[EventBus] Publishing ${eventName} to ${handlers.size} handlers`);
+        console.log(
+          `[EventBus] Publishing ${eventName} to ${handlers.size} handlers`,
+        );
       }
-      
+
       const promises: Promise<void>[] = [];
-      
+
       for (const handler of handlers) {
         try {
           let result: void | Promise<void>;
-          
+
           if (isEventHandler(handler)) {
             // Class-based handler
             result = handler.handle(event);
@@ -167,7 +172,7 @@ export class InMemoryEventBus implements IEventBus {
             // Function handler
             result = handler(event);
           }
-          
+
           if (result instanceof Promise) {
             promises.push(result);
           }
@@ -175,7 +180,7 @@ export class InMemoryEventBus implements IEventBus {
           this.handleError(error as Error, eventName);
         }
       }
-      
+
       if (promises.length > 0) {
         try {
           await Promise.all(promises);
@@ -184,21 +189,21 @@ export class InMemoryEventBus implements IEventBus {
         }
       }
     };
-    
+
     // If there are no middlewares, return the base pipeline
     if (!this.options.middlewares || this.options.middlewares.length === 0) {
       return basePipeline;
     }
-    
+
     // Apply middlewares in reverse order (last middleware is closest to the event handlers)
     let pipeline = basePipeline;
     for (let i = this.options.middlewares.length - 1; i >= 0; i--) {
       pipeline = this.options.middlewares[i](pipeline);
     }
-    
+
     return pipeline;
   }
-  
+
   /**
    * Handle errors during event publishing
    */
@@ -210,15 +215,18 @@ export class InMemoryEventBus implements IEventBus {
       throw error;
     }
   }
-  
+
   /**
    * Add a middleware to the event bus
    * This rebuilds the pipeline with the new middleware
-   * 
+   *
    * @param middleware - The middleware to add
    */
   public addMiddleware(middleware: EventBusMiddleware): void {
-    this.options.middlewares = [...(this.options.middlewares || []), middleware];
+    this.options.middlewares = [
+      ...(this.options.middlewares || []),
+      middleware,
+    ];
     this.publishPipeline = this.buildPublishPipeline();
   }
 }

@@ -1,5 +1,5 @@
-import { IDomainError, DomainErrorCode, DomainErrorOptions } from "../core";
-import { ActorType } from "./actor-type.enum";
+import { IDomainError, DomainErrorCode, DomainErrorOptions } from '../core';
+import { ActorType } from './actor-type.enum';
 
 export class ActorError extends IDomainError {
   static withType(type: ActorType, data?: DomainErrorOptions): ActorError {

@@ -7,10 +7,10 @@ describe('safeRun', () => {
     it('should return the value and undefined for error when synchronous function succeeds', () => {
       // Arrange
       const fn = () => 'success';
-      
+
       // Act
       const [error, value] = safeRun(fn);
-      
+
       // Assert
       expect(value).toBe('success');
       expect(error).toBeUndefined();
@@ -22,10 +22,10 @@ describe('safeRun', () => {
       const fn = () => {
         throw expectedError;
       };
-      
+
       // Act
       const [error, value] = safeRun(fn);
-      
+
       // Assert
       expect(value).toBeUndefined();
       expect(error).toBe(expectedError);
@@ -42,10 +42,10 @@ describe('safeRun', () => {
 
       testCases.forEach(({ fn, expected }) => {
         // Arrange - (already set up in testCases)
-        
+
         // Act
         const [error, value] = safeRun(fn);
-        
+
         // Assert
         expect(value).toEqual(expected);
         expect(error).toBeUndefined();
@@ -63,11 +63,13 @@ describe('safeRun', () => {
 
       errorTypes.forEach((expectedError) => {
         // Arrange
-        const fn = () => { throw expectedError; };
-        
+        const fn = () => {
+          throw expectedError;
+        };
+
         // Act
         const [error, value] = safeRun(fn);
-        
+
         // Assert
         expect(value).toBeUndefined();
         expect(error).toBe(expectedError);
@@ -80,10 +82,10 @@ describe('safeRun', () => {
     it('should return the value and undefined for error when asynchronous function succeeds', async () => {
       // Arrange
       const fn = async () => 'async success';
-      
+
       // Act
       const [error, value] = await safeRun(fn);
-      
+
       // Assert
       expect(value).toBe('async success');
       expect(error).toBeUndefined();
@@ -95,10 +97,10 @@ describe('safeRun', () => {
       const fn = async () => {
         throw expectedError;
       };
-      
+
       // Act
       const [error, value] = await safeRun(fn);
-      
+
       // Assert
       expect(value).toBeUndefined();
       expect(error).toBe(expectedError);
@@ -117,7 +119,7 @@ describe('safeRun', () => {
       for (const { fn, expected } of testCases) {
         // Act
         const [error, value] = await safeRun(fn);
-        
+
         // Assert
         expect(value).toEqual(expected);
         expect(error).toBeUndefined();
@@ -136,11 +138,13 @@ describe('safeRun', () => {
 
       for (const expectedError of errorTypes) {
         // Arrange (continued)
-        const fn = async () => { throw expectedError; };
-        
+        const fn = async () => {
+          throw expectedError;
+        };
+
         // Act
         const [error, value] = await safeRun(fn);
-        
+
         // Assert
         expect(value).toBeUndefined();
         expect(error).toBe(expectedError);
@@ -151,13 +155,13 @@ describe('safeRun', () => {
       // Arrange
       const expectedError = new Error('delayed error');
       const fn = async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
         throw expectedError;
       };
-      
+
       // Act
       const [error, value] = await safeRun(fn);
-      
+
       // Assert
       expect(value).toBeUndefined();
       expect(error).toBe(expectedError);
@@ -166,13 +170,13 @@ describe('safeRun', () => {
     it('should handle promises that resolve after a delay', async () => {
       // Arrange
       const fn = async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
         return 'delayed success';
       };
-      
+
       // Act
       const [error, value] = await safeRun(fn);
-      
+
       // Assert
       expect(value).toBe('delayed success');
       expect(error).toBeUndefined();
@@ -184,13 +188,13 @@ describe('safeRun', () => {
     it('should correctly identify promises returned by functions', async () => {
       // Arrange
       const fnReturningPromise = () => Promise.resolve('direct promise');
-      
+
       // Act
       const result = safeRun(fnReturningPromise);
-      
+
       // Assert
       expect(result).toBeInstanceOf(Promise);
-      
+
       const [error, value] = await result;
       expect(value).toBe('direct promise');
       expect(error).toBeUndefined();
@@ -199,18 +203,18 @@ describe('safeRun', () => {
     it('should handle the case when fn is called multiple times', () => {
       // Arrange
       const mockFn = vi.fn().mockReturnValue('multiple calls');
-      
+
       // Act - First call
       const [error1, value1] = safeRun(mockFn);
-      
+
       // Assert - First call
       expect(value1).toBe('multiple calls');
       expect(error1).toBeUndefined();
       expect(mockFn).toHaveBeenCalledTimes(1);
-      
+
       // Act - Second call
       const [error2, value2] = safeRun(mockFn);
-      
+
       // Assert - Second call
       expect(value2).toBe('multiple calls');
       expect(error2).toBeUndefined();
@@ -224,10 +228,10 @@ describe('safeRun', () => {
         const [innerError, innerValue] = safeRun(innerFn);
         return innerValue;
       };
-      
+
       // Act
       const [outerError, outerValue] = safeRun(outerFn);
-      
+
       // Assert
       expect(outerValue).toBe('inner function');
       expect(outerError).toBeUndefined();
@@ -240,10 +244,10 @@ describe('safeRun', () => {
         const [innerError, innerValue] = await safeRun(innerFn);
         return innerValue;
       };
-      
+
       // Act
       const [outerError, outerValue] = await safeRun(outerFn);
-      
+
       // Assert
       expect(outerValue).toBe('inner async function');
       expect(outerError).toBeUndefined();
@@ -256,10 +260,10 @@ describe('safeRun', () => {
         const [innerError, innerValue] = safeRun(innerFn);
         return innerValue;
       };
-      
+
       // Act
       const [outerError, outerValue] = await safeRun(outerFn);
-      
+
       // Assert
       expect(outerValue).toBe('inner sync function');
       expect(outerError).toBeUndefined();
