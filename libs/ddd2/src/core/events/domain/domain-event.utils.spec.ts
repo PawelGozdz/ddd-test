@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { createDomainEvent } from './domain-event.utils';
-import { LibUtils } from '../../utils';
+import { LibUtils } from '../../../utils';
 
 describe('createDomainEvent', () => {
   beforeEach(() => {

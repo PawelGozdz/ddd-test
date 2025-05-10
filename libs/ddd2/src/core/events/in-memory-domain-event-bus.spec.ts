@@ -3,8 +3,9 @@ import {
   InMemoryEventBus,
   InMemoryEventBusOptions,
 } from './in-memory-domain-event-bus';
-import { IDomainEvent, IEventHandler, EventBusMiddleware } from '..';
+import { IEventHandler, EventBusMiddleware } from '..';
 import { safeRun } from '../../utils';
+import { IDomainEvent } from './domain';
 
 // Test events
 class TestEvent implements IDomainEvent {
@@ -647,7 +648,7 @@ describe('InMemoryEventBus', () => {
       eventBus.subscribe(TestEvent, handler);
 
       // Act & Assert
-      // @ts-expect-error - Deliberately creating a malformed event
+      // @ts-expect-error for testing
       await eventBus.publish({ notAProperEvent: true });
 
       expect(handler).toHaveBeenCalledTimes(0);

@@ -1,11 +1,11 @@
 import {
-  IDomainEvent,
   IEventBus,
   EventBusMiddleware,
   EventHandlerFn,
   IEventHandler,
   isEventHandler,
 } from '../../core';
+import { IDomainEvent } from './domain';
 
 /**
  * Options for configuring the InMemoryEventBus

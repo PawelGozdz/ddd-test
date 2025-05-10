@@ -1,10 +1,9 @@
 import 'reflect-metadata';
-
+import { IDomainEvent } from './domain';
 import {
   EVENT_HANDLER_METADATA,
   EVENT_HANDLER_OPTIONS,
-  IDomainEvent,
-} from '..';
+} from './event-handler-interface';
 
 /**
  * Opcje dla dekoratora EventHandler

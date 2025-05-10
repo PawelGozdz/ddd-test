@@ -1,12 +1,10 @@
 import { LibUtils } from '../../utils';
+import { IDomainEvent, IExtendedDomainEvent } from './domain';
+import { EventBusMiddleware, IEventBus } from './event-bus';
 import {
-  IEventBus,
-  IDomainEvent,
-  IExtendedDomainEvent,
-  EventBusMiddleware,
-  InMemoryEventBusOptions,
   InMemoryEventBus,
-} from '..';
+  InMemoryEventBusOptions,
+} from './in-memory-domain-event-bus';
 
 /**
  * Builder for creating and configuring event buses

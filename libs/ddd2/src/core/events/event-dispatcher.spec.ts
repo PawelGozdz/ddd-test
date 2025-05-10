@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { safeRun } from '../../utils';
-import { AggregateRoot, EntityId, IDomainEvent, IEventBus } from '..';
+import { AggregateRoot } from '../domain';
 import { EventDispatcher, createEventDispatcher } from './event-dispatcher';
+import { IDomainEvent } from './domain';
+import { EntityId } from '../value-objects';
+import { IEventBus } from './event-bus';
 
 // Mock implementation of AggregateRoot
 class MockAggregate extends AggregateRoot<string> {

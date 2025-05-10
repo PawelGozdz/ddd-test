@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import 'reflect-metadata';
 import { EventHandler, EventHandlerOptions } from './event-handler';
+import { IDomainEvent } from './domain';
 import {
   EVENT_HANDLER_METADATA,
   EVENT_HANDLER_OPTIONS,
-  IDomainEvent,
-} from '..';
+} from './event-handler-interface';
 
 // Przykładowe zdarzenia do testowania
 class TestEvent implements IDomainEvent {

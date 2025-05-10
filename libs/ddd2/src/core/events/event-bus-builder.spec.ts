@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LibUtils } from '../../utils';
-import { DomainEvent, IDomainEvent, IExtendedDomainEvent } from '..';
+import { DomainEvent, IDomainEvent, IExtendedDomainEvent } from './domain';
 import { EventBusBuilder } from './event-bus-builder';
 import { InMemoryEventBus } from './in-memory-domain-event-bus';
 

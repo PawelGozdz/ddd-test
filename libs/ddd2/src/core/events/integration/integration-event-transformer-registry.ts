@@ -1,4 +1,4 @@
-import { IExtendedDomainEvent } from './domain-event-interfaces';
+import { IExtendedDomainEvent } from '../domain';
 import {
   IDomainToIntegrationEventTransformer,
   IIntegrationEvent,

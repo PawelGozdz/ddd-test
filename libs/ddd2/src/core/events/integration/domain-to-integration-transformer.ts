@@ -1,7 +1,4 @@
-import {
-  IExtendedDomainEvent,
-  IEventMetadata,
-} from './domain-event-interfaces';
+import { IExtendedDomainEvent, IEventMetadata } from '../domain';
 import {
   IIntegrationEvent,
   IIntegrationEventMetadata,

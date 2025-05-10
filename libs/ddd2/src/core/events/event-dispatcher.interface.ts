@@ -1,6 +1,6 @@
 // event-dispatcher.ts
-import { IAggregateRoot } from '../domain/aggregate-interfaces';
-import { IDomainEvent } from './domain-event-interfaces';
+import { IAggregateRoot } from '../domain/';
+import { IDomainEvent } from './domain';
 
 /**
  * Interface for event dispatchers

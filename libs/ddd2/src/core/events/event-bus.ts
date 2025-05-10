@@ -1,4 +1,4 @@
-import { IDomainEvent } from './domain-event-interfaces';
+import { IDomainEvent } from './domain';
 import { EventHandlerFn, IEventHandler } from './event-handler-interface';
 
 /**

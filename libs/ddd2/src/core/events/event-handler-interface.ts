@@ -1,4 +1,4 @@
-import { IDomainEvent } from './domain-event-interfaces';
+import { IDomainEvent } from './domain';
 
 /**
  * Function type for handling domain events

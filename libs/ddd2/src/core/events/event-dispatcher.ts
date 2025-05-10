@@ -1,4 +1,5 @@
-import { AggregateRoot, IDomainEvent, IEventBus, IEventDispatcher } from '..';
+import { AggregateRoot, IEventBus, IEventDispatcher } from '..';
+import { IDomainEvent } from './domain';
 
 /**
  * Default implementation of event dispatcher
