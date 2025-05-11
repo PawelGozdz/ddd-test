@@ -7,3 +7,5 @@ export * from './event-handler';
 export * from './in-memory-domain-event-bus';
 export * from './domain';
 export * from './integration';
+export * from './event-persistence-handler.interface';
+export * from './generic-event-persistence-handler';

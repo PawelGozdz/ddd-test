@@ -1,8 +1,11 @@
-import { IEventDispatcher, AggregateRoot } from '../';
+import { IEventDispatcher, AggregateRoot, IEventPersistenceHandler } from '../';
 import { VersionError } from '../domain/domain.errors';
 
 export abstract class IBaseRepository {
-  constructor(protected readonly eventDispatcher: IEventDispatcher) {}
+  constructor(
+    protected readonly eventDispatcher: IEventDispatcher,
+    protected readonly eventPersistenceHandler: IEventPersistenceHandler,
+  ) {}
 
   async save(aggregate: AggregateRoot): Promise<void> {
     const events = aggregate.getDomainEvents();
@@ -10,7 +13,9 @@ export abstract class IBaseRepository {
     if (events.length === 0) return;
 
     const currentVersion =
-      (await this.getCurrentVersion(aggregate.getId())) ?? 0;
+      (await this.eventPersistenceHandler.getCurrentVersion(
+        aggregate.getId(),
+      )) ?? 0;
     const initialVersion = aggregate.getInitialVersion();
 
     if (initialVersion !== currentVersion) {
@@ -21,21 +26,15 @@ export abstract class IBaseRepository {
       );
     }
 
-    for (let i = 0; i < events.length; i++) {
-      const handlerName = `handle${events[i].eventType}`;
-      const handler = (this as any)[handlerName];
+    let version = currentVersion;
 
-      if (typeof handler !== 'function') {
-        throw new Error(
-          `Missing handler ${handlerName} in repository ${this.constructor.name}`,
-        );
-      }
-
-      await handler.call(this, events[i].payload);
+    for (const event of events) {
+      version = await this.eventPersistenceHandler.handleEvent(event);
     }
 
+    // Publish events
     await this.eventDispatcher.dispatchEventsForAggregate(aggregate);
   }
 
-  abstract getCurrentVersion(id: any): Promise<number>;
+  abstract findById(id: any): Promise<any | null>;
 }
