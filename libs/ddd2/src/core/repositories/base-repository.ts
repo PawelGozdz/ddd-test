@@ -1,4 +1,4 @@
-import { IEventDispatcher, AggregateRoot } from '..';
+import { IEventDispatcher, AggregateRoot } from '../';
 import { VersionError } from '../domain/domain.errors';
 
 export abstract class IBaseRepository {

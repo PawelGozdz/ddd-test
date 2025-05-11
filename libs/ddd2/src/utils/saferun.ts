@@ -1,3 +1,9 @@
+/**
+ * Method primarly used to run tests in a safe way, without throwing errors
+ * and handling exceptions using try/catch.
+ * It's not used in implementation of any features.
+ */
+
 // Synchronous version
 export function safeRun<E extends Error, T>(
   fn: () => T,

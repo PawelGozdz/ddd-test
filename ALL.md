@@ -4299,3 +4299,3699 @@ Domain Services in DomainTS provide a powerful, flexible implementation of this 
 
 This enables you to implement complex domain processes while maintaining a clean, maintainable codebase aligned with DDD principles.
 
+# Utility Functions in DomainTS - LLM-Optimized Guide
+
+## Document Metadata
+
+- **Pattern Name**: Result Pattern
+- **Category**: Core Utilities
+- **Module Name**: Utils (LibUtils, Result Pattern & SafeRun)
+- **Purpose**: Common utility functions and safe execution patterns
+- **Library**: DomainTS
+- **Language**: TypeScript
+- **Version**: 1.0.0
+
+## Pattern Overview
+
+### What is the Result Pattern?
+
+The Result Pattern is a functional programming approach to error handling that represents the outcome of an operation as either a success with a value or a failure with an error. Instead of throwing exceptions, operations return a Result object that explicitly represents both possibilities.
+
+**Core Concept**:
+
+```typescript
+// Result pattern answers: "Did this operation succeed or fail?"
+const result = doSomething();
+if (result.isSuccess) {
+  console.log(result.value); // Access success value
+} else {
+  console.log(result.error); // Access error information
+}
+```
+
+### Primary Use Cases
+
+1. **Safe Operation Execution**: Execute operations without throwing exceptions
+2. **Explicit Error Handling**: Make error cases visible in the type system
+3. **Composable Operations**: Chain operations that might fail
+4. **Async Error Handling**: Handle errors in Promise-based code elegantly
+5. **Domain Operation Results**: Return results from domain services and repositories
+
+### Key Benefits
+
+- **Type Safety**: Errors are part of the type signature
+- **No Exceptions**: Avoid try-catch blocks for business logic
+- **Composability**: Chain operations with map, flatMap
+- **Explicit Flow**: Success and failure paths are clear
+- **Better Testing**: Easier to test both success and failure cases
+
+## Core Components
+
+### 1. Result Class
+
+**Purpose**: Encapsulate success or failure outcomes
+
+```typescript
+class Result<TValue, TError = Error> {
+  // Check result status
+  get isSuccess(): boolean;
+  get isFailure(): boolean;
+  
+  // Access values (throw if accessed incorrectly)
+  get value(): TValue;
+  get error(): TError;
+  
+  // Create results
+  static ok<TValue, TError = Error>(value?: TValue): Result<TValue, TError>;
+  static fail<TValue, TError = Error>(error: TError): Result<TValue, TError>;
+  
+  // Transform results
+  map<TNewValue>(fn: (value: TValue) => TNewValue): Result<TNewValue, TError>;
+  flatMap<TNewValue>(fn: (value: TValue) => Result<TNewValue, TError>): Result<TNewValue, TError>;
+  
+  // Pattern matching
+  match<TResult>(
+    onSuccess: (value: TValue) => TResult,
+    onFailure: (error: TError) => TResult
+  ): TResult;
+}
+```
+
+## Basic Usage Examples
+
+### 1. Creating Results
+
+```typescript
+// Success result
+const successResult = Result.ok<number>(42);
+console.log(successResult.isSuccess); // true
+console.log(successResult.value); // 42
+
+// Failure result
+const failureResult = Result.fail<number>(new Error("Something went wrong"));
+console.log(failureResult.isFailure); // true
+console.log(failureResult.error.message); // "Something went wrong"
+
+// Success with no value (void operations)
+const voidSuccess = Result.ok<void>();
+```
+
+### 2. Safe Function Execution
+
+```typescript
+// Wrap potentially failing operations
+function divide(a: number, b: number): Result<number, Error> {
+  if (b === 0) {
+    return Result.fail(new Error("Division by zero"));
+  }
+  return Result.ok(a / b);
+}
+
+// Use the function
+const result = divide(10, 2);
+if (result.isSuccess) {
+  console.log(`Result: ${result.value}`); // Result: 5
+} else {
+  console.log(`Error: ${result.error.message}`);
+}
+
+// Using Result.try for existing code
+const parseResult = Result.try(() => JSON.parse('{"name": "John"}'));
+if (parseResult.isSuccess) {
+  console.log(parseResult.value.name); // John
+}
+```
+
+### 3. Transforming Results
+
+```typescript
+// Map: Transform success values
+const numberResult = Result.ok(5);
+const doubledResult = numberResult.map(x => x * 2);
+console.log(doubledResult.value); // 10
+
+// Map on failure passes through the error
+const errorResult = Result.fail<number>(new Error("Failed"));
+const mappedError = errorResult.map(x => x * 2);
+console.log(mappedError.isFailure); // true
+
+// FlatMap: Chain operations that return Results
+function getUserById(id: string): Result<User, Error> {
+  // Implementation
+}
+
+function getUserOrders(user: User): Result<Order[], Error> {
+  // Implementation
+}
+
+const ordersResult = getUserById("123")
+  .flatMap(user => getUserOrders(user));
+```
+
+### 4. Pattern Matching
+
+```typescript
+const result = divide(10, 0);
+
+// Using match for different outcomes
+const message = result.match(
+  value => `Success: ${value}`,
+  error => `Error: ${error.message}`
+);
+console.log(message); // "Error: Division by zero"
+
+// More complex matching
+const httpStatus = result.match(
+  value => ({ status: 200, data: value }),
+  error => ({ status: 400, error: error.message })
+);
+```
+
+### 5. Side Effects with Tap
+
+```typescript
+const result = divide(10, 2)
+  .tap(value => console.log(`Calculated: ${value}`))
+  .tapError(error => console.error(`Error occurred: ${error.message}`))
+  .map(value => value * 2);
+
+// tap and tapError don't change the result, only perform side effects
+```
+
+## Advanced Usage Patterns
+
+### 1. Async Operations
+
+```typescript
+// Async function returning Result
+async function fetchUser(id: string): Promise<Result<User, Error>> {
+  try {
+    const response = await fetch(`/api/users/${id}`);
+    if (!response.ok) {
+      return Result.fail(new Error(`HTTP ${response.status}`));
+    }
+    const user = await response.json();
+    return Result.ok(user);
+  } catch (error) {
+    return Result.fail(error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+// Using Result.tryAsync
+const userResult = await Result.tryAsync(async () => {
+  const response = await fetch('/api/user');
+  return response.json();
+});
+
+// Async transformations
+const processedResult = await userResult
+  .mapAsync(async user => {
+    const profile = await fetchProfile(user.id);
+    return { ...user, profile };
+  });
+```
+
+### 2. Custom Error Types
+
+```typescript
+// Define domain-specific errors
+class ValidationError {
+  constructor(
+    public readonly field: string,
+    public readonly message: string
+  ) {}
+}
+
+class NotFoundError {
+  constructor(
+    public readonly resource: string,
+    public readonly id: string
+  ) {}
+}
+
+// Use with Result
+function validateUser(data: any): Result<User, ValidationError> {
+  if (!data.email) {
+    return Result.fail(new ValidationError('email', 'Email is required'));
+  }
+  // More validation...
+  return Result.ok(new User(data));
+}
+
+function findUser(id: string): Result<User, NotFoundError> {
+  const user = userRepository.find(id);
+  if (!user) {
+    return Result.fail(new NotFoundError('User', id));
+  }
+  return Result.ok(user);
+}
+```
+
+### 3. Combining Multiple Results
+
+```typescript
+// Helper function to combine results
+function combineResults<T, E>(
+  results: Result<T, E>[]
+): Result<T[], E> {
+  const values: T[] = [];
+  
+  for (const result of results) {
+    if (result.isFailure) {
+      return Result.fail(result.error);
+    }
+    values.push(result.value);
+  }
+  
+  return Result.ok(values);
+}
+
+// Usage
+const userResults = [
+  getUserById("1"),
+  getUserById("2"),
+  getUserById("3")
+];
+
+const allUsersResult = combineResults(userResults);
+```
+
+### 4. Railway-Oriented Programming
+
+```typescript
+// Chain of operations that might fail
+class OrderService {
+  processOrder(orderId: string): Result<Order, Error> {
+    return this.findOrder(orderId)
+      .flatMap(order => this.validateOrder(order))
+      .flatMap(order => this.checkInventory(order))
+      .flatMap(order => this.processPayment(order))
+      .flatMap(order => this.shipOrder(order))
+      .tap(order => this.sendConfirmationEmail(order));
+  }
+  
+  private findOrder(id: string): Result<Order, Error> {
+    // Implementation
+  }
+  
+  private validateOrder(order: Order): Result<Order, Error> {
+    // Implementation
+  }
+  
+  // Other methods...
+}
+```
+
+## Integration with DomainTS Patterns
+
+### 1. With Validation
+
+```typescript
+class UserValidator implements IValidator<User> {
+  validate(user: User): Result<User, ValidationErrors> {
+    const errors: ValidationError[] = [];
+    
+    if (!user.email) {
+      errors.push(new ValidationError('email', 'Email is required'));
+    }
+    
+    if (user.age < 18) {
+      errors.push(new ValidationError('age', 'Must be 18 or older'));
+    }
+    
+    if (errors.length > 0) {
+      return Result.fail(new ValidationErrors(errors));
+    }
+    
+    return Result.ok(user);
+  }
+}
+```
+
+### 2. With Domain Services
+
+```typescript
+class AccountService extends DomainService {
+  createAccount(data: CreateAccountDto): Result<Account, Error> {
+    // Validate input
+    const validationResult = this.validator.validate(data);
+    if (validationResult.isFailure) {
+      return Result.fail(validationResult.error);
+    }
+    
+    // Check if email already exists
+    const existingAccount = this.accountRepository.findByEmail(data.email);
+    if (existingAccount) {
+      return Result.fail(new Error('Email already in use'));
+    }
+    
+    // Create account
+    const account = Account.create(data);
+    this.accountRepository.save(account);
+    
+    return Result.ok(account);
+  }
+}
+```
+
+### 3. With Specifications
+
+```typescript
+class OrderSpecificationService {
+  canShipOrder(order: Order): Result<boolean, Error> {
+    const spec = new OrderReadyToShipSpecification();
+    
+    if (!spec.isSatisfiedBy(order)) {
+      const reason = spec.explainFailure(order);
+      return Result.fail(new Error(reason || 'Order cannot be shipped'));
+    }
+    
+    return Result.ok(true);
+  }
+}
+```
+
+## Best Practices
+
+### 1. Always Handle Both Cases
+
+```typescript
+// Bad - ignoring error case
+const result = someOperation();
+console.log(result.value); // Might throw!
+
+// Good - handle both cases
+const result = someOperation();
+if (result.isSuccess) {
+  console.log(result.value);
+} else {
+  console.log(`Error: ${result.error.message}`);
+}
+
+// Better - use pattern matching
+const output = result.match(
+  value => `Success: ${value}`,
+  error => `Error: ${error.message}`
+);
+```
+
+### 2. Use Specific Error Types
+
+```typescript
+// Bad - generic errors
+return Result.fail(new Error('Something went wrong'));
+
+// Good - specific error types
+class InvalidOrderError extends Error {
+  constructor(public readonly orderId: string, reason: string) {
+    super(`Order ${orderId} is invalid: ${reason}`);
+  }
+}
+
+return Result.fail(new InvalidOrderError(order.id, 'No items in order'));
+```
+
+### 3. Chain Operations Properly
+
+```typescript
+// Bad - nested if statements
+const userResult = getUser(id);
+if (userResult.isSuccess) {
+  const orderResult = getOrders(userResult.value);
+  if (orderResult.isSuccess) {
+    // Process orders
+  }
+}
+
+// Good - use flatMap
+const ordersResult = getUser(id)
+  .flatMap(user => getOrders(user));
+```
+
+### 4. Don't Mix Exceptions and Results
+
+```typescript
+// Bad - throwing inside Result operations
+function processData(data: string): Result<ProcessedData, Error> {
+  if (!data) {
+    throw new Error('No data'); // Don't throw!
+  }
+  return Result.ok(process(data));
+}
+
+// Good - return Result consistently
+function processData(data: string): Result<ProcessedData, Error> {
+  if (!data) {
+    return Result.fail(new Error('No data'));
+  }
+  return Result.ok(process(data));
+}
+```
+
+### 5. Use Result.try for Third-Party Code
+
+```typescript
+// When working with code that might throw
+const result = Result.try(() => {
+  // Third-party code that might throw
+  return thirdPartyLibrary.doSomething();
+});
+
+// For async third-party code
+const asyncResult = await Result.tryAsync(async () => {
+  return await thirdPartyApi.fetchData();
+});
+```
+
+## Testing with Result
+
+```typescript
+describe('OrderService', () => {
+  it('should successfully process valid order', () => {
+    const service = new OrderService();
+    const result = service.processOrder(validOrder);
+    
+    expect(result.isSuccess).toBe(true);
+    expect(result.value.status).toBe('processed');
+  });
+  
+  it('should fail for invalid order', () => {
+    const service = new OrderService();
+    const result = service.processOrder(invalidOrder);
+    
+    expect(result.isFailure).toBe(true);
+    expect(result.error.message).toContain('Invalid order');
+  });
+  
+  it('should chain operations correctly', () => {
+    const result = Result.ok(5)
+      .map(x => x * 2)
+      .flatMap(x => x > 5 ? Result.ok(x) : Result.fail(new Error('Too small')));
+    
+    expect(result.isSuccess).toBe(true);
+    expect(result.value).toBe(10);
+  });
+});
+```
+
+## Performance Considerations
+
+### 1. Avoid Creating Unnecessary Results
+
+```typescript
+// Bad - creating intermediate Results
+function processItems(items: Item[]): Result<Item[], Error> {
+  const results = items.map(item => Result.ok(processItem(item)));
+  return combineResults(results);
+}
+
+// Good - create Result at the end
+function processItems(items: Item[]): Result<Item[], Error> {
+  try {
+    const processed = items.map(item => processItem(item));
+    return Result.ok(processed);
+  } catch (error) {
+    return Result.fail(error instanceof Error ? error : new Error(String(error)));
+  }
+}
+```
+
+### 2. Lazy Evaluation
+
+```typescript
+// Results are evaluated immediately
+const result = expensiveOperation()
+  .map(value => anotherExpensiveOperation(value));
+
+// Consider lazy evaluation for expensive operations
+class LazyResult<T, E> {
+  constructor(private computation: () => Result<T, E>) {}
+  
+  evaluate(): Result<T, E> {
+    return this.computation();
+  }
+}
+```
+
+## Conclusion
+
+The Result Pattern in DomainTS provides:
+
+- **Explicit Error Handling**: Errors are part of the type system
+- **Functional Composition**: Chain operations elegantly
+- **Type Safety**: Compiler ensures error handling
+- **Better Testing**: Easy to test both success and failure
+- **Domain Integration**: Works seamlessly with other DomainTS patterns
+
+The Result pattern transforms error handling from an afterthought into a first-class citizen in your domain model, making your code more reliable and maintainable.
+
+## Module Overview
+
+The Utils module provides essential utility functions used throughout DomainTS, including UUID generation, value checking, deep comparison, and safe function execution. These utilities form the foundation for many higher-level patterns in the library.
+
+## Part 1: LibUtils
+
+### What is LibUtils?
+
+LibUtils is a collection of static utility methods providing common functionality needed across domain implementations, such as identifier generation, value validation, and object comparison.
+
+### Core Features
+
+1. **UUID Generation**: Create unique identifiers
+2. **Value Checking**: Determine if values are empty, truthy, or falsy
+3. **Validation**: Check if values are valid UUIDs, integers, or custom IDs
+4. **Deep Comparison**: Compare objects recursively
+5. **Async Utilities**: Helper functions for async operations
+
+### LibUtils Methods
+
+#### 1. UUID Generation
+
+```typescript
+// Generate a UUID v4
+const id = LibUtils.getUUID(); // Returns UUID v4 by default
+const idV4 = LibUtils.getUUID('v4'); // Explicit v4
+
+// Validate UUID
+const isValid = LibUtils.isValidUUID('550e8400-e29b-41d4-a716-446655440000');
+console.log(isValid); // true
+
+// Example in domain entity
+class OrderId {
+  private readonly value: string;
+  
+  constructor(value?: string) {
+    this.value = value || LibUtils.getUUID();
+    if (!LibUtils.isValidUUID(this.value)) {
+      throw new Error('Invalid order ID');
+    }
+  }
+}
+```
+
+#### 2. Value Checking
+
+```typescript
+// Check if value is empty
+console.log(LibUtils.isEmpty(null)); // true
+console.log(LibUtils.isEmpty(undefined)); // true
+console.log(LibUtils.isEmpty('')); // true
+console.log(LibUtils.isEmpty([])); // true
+console.log(LibUtils.isEmpty({})); // true
+console.log(LibUtils.isEmpty(0)); // true
+console.log(LibUtils.isEmpty(false)); // true
+
+// Special cases
+console.log(LibUtils.isEmpty(new Date())); // false (valid date)
+console.log(LibUtils.isEmpty(Number.MAX_SAFE_INTEGER)); // false
+console.log(LibUtils.isEmpty(new Map([['key', 'value']]))); // false
+
+// hasValue is the opposite of isEmpty
+console.log(LibUtils.hasValue('text')); // true
+console.log(LibUtils.hasValue(42)); // true
+console.log(LibUtils.hasValue(null)); // false
+
+// Truthy/Falsy checking with special handling
+console.log(LibUtils.isTruthy(1)); // true
+console.log(LibUtils.isTruthy('text')); // true
+console.log(LibUtils.isTruthy([])); // false (empty array)
+console.log(LibUtils.isTruthy(new Set([1]))); // true (non-empty set)
+```
+
+#### 3. Validation Functions
+
+```typescript
+// Integer validation
+console.log(LibUtils.isValidInteger(42)); // true
+console.log(LibUtils.isValidInteger(3.14)); // false
+console.log(LibUtils.isValidInteger(-1)); // false (must be >= 0)
+
+// BigInt validation
+console.log(LibUtils.isValidBigInt('12345678901234567890')); // true
+console.log(LibUtils.isValidBigInt('12.34')); // false
+console.log(LibUtils.isValidBigInt('abc')); // false
+
+// Text ID validation (alphanumeric with - and _)
+console.log(LibUtils.isValidTextId('user-123')); // true
+console.log(LibUtils.isValidTextId('order_456')); // true
+console.log(LibUtils.isValidTextId('invalid@id')); // false
+
+// ID normalization
+const stringId = LibUtils.normalizeIdToString(123); // "123"
+const bigIntId = LibUtils.normalizeIdToString(BigInt(456)); // "456"
+const alreadyString = LibUtils.normalizeIdToString('789'); // "789"
+```
+
+#### 4. Deep Equality Comparison
+
+```typescript
+// Compare complex objects
+const obj1 = {
+  name: 'John',
+  age: 30,
+  address: {
+    city: 'New York',
+    country: 'USA'
+  },
+  hobbies: ['reading', 'gaming']
+};
+
+const obj2 = {
+  name: 'John',
+  age: 30,
+  address: {
+    city: 'New York',
+    country: 'USA'
+  },
+  hobbies: ['reading', 'gaming']
+};
+
+console.log(LibUtils.deepEqual(obj1, obj2)); // true
+
+// Handles circular references
+const circular1: any = { name: 'test' };
+circular1.self = circular1;
+
+const circular2: any = { name: 'test' };
+circular2.self = circular2;
+
+console.log(LibUtils.deepEqual(circular1, circular2)); // true
+```
+
+#### 5. Async Utilities
+
+```typescript
+// Sleep utility for delays
+async function processWithDelay() {
+  console.log('Starting...');
+  await LibUtils.sleep(1000); // Wait 1 second
+  console.log('Continued after delay');
+}
+
+// Useful in retry logic
+async function retryOperation<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  delay: number = 1000
+): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (i < maxRetries - 1) {
+        await LibUtils.sleep(delay);
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error('Should not reach here');
+}
+```
+
+### LibUtils Usage Examples
+
+#### Example 1: Entity Base Class
+
+```typescript
+abstract class Entity<T> {
+  public readonly id: string;
+  
+  constructor(id?: string) {
+    this.id = id || LibUtils.getUUID();
+    if (!LibUtils.isValidUUID(this.id)) {
+      throw new Error('Invalid entity ID');
+    }
+  }
+  
+  equals(other: Entity<T>): boolean {
+    if (!other) return false;
+    return this.id === other.id;
+  }
+  
+  abstract toPlainObject(): T;
+  
+  deepEquals(other: Entity<T>): boolean {
+    return LibUtils.deepEqual(
+      this.toPlainObject(),
+      other.toPlainObject()
+    );
+  }
+}
+```
+
+#### Example 2: Value Object Base Class
+
+```typescript
+abstract class ValueObject<T> {
+  abstract toPlainObject(): T;
+  
+  equals(other: ValueObject<T>): boolean {
+    if (!other) return false;
+    return LibUtils.deepEqual(
+      this.toPlainObject(),
+      other.toPlainObject()
+    );
+  }
+  
+  protected isEmpty(value: any): boolean {
+    return LibUtils.isEmpty(value);
+  }
+  
+  protected hasValue(value: any): boolean {
+    return LibUtils.hasValue(value);
+  }
+}
+
+// Usage
+class Email extends ValueObject<{ value: string }> {
+  constructor(private readonly value: string) {
+    super();
+    if (this.isEmpty(value)) {
+      throw new Error('Email cannot be empty');
+    }
+  }
+  
+  toPlainObject() {
+    return { value: this.value };
+  }
+}
+```
+
+#### Example 3: Repository Implementation
+
+```typescript
+class InMemoryRepository<T extends Entity<any>> {
+  private items: Map<string, T> = new Map();
+  
+  async save(entity: T): Promise<void> {
+    if (!LibUtils.isValidUUID(entity.id)) {
+      throw new Error('Invalid entity ID');
+    }
+    this.items.set(entity.id, entity);
+  }
+  
+  async findById(id: string): Promise<T | null> {
+    // Normalize different ID types
+    const normalizedId = LibUtils.normalizeIdToString(id);
+    return this.items.get(normalizedId) || null;
+  }
+  
+  async findAll(): Promise<T[]> {
+    return Array.from(this.items.values());
+  }
+  
+  async exists(id: string): Promise<boolean> {
+    const normalizedId = LibUtils.normalizeIdToString(id);
+    return this.items.has(normalizedId);
+  }
+}
+```
+
+## Part 2: SafeRun
+
+### What is SafeRun?
+
+SafeRun is a utility function that executes other functions safely, catching any errors and returning them in a tuple format. It's particularly useful for testing and scenarios where you want to handle errors without try-catch blocks.
+
+### SafeRun Features
+
+1. **Synchronous execution**: Handle sync functions safely
+2. **Asynchronous execution**: Handle async functions safely
+3. **Type-safe error handling**: Maintain type information for errors
+4. **Tuple return pattern**: Return [error, result] tuples
+
+### SafeRun Usage
+
+#### Basic Usage
+
+```typescript
+// Synchronous function
+const [error, result] = safeRun(() => {
+  return JSON.parse('{"name": "John"}');
+});
+
+if (error) {
+  console.log('Parsing failed:', error.message);
+} else {
+  console.log('Parsed successfully:', result);
+}
+
+// Asynchronous function
+const [asyncError, asyncResult] = await safeRun(async () => {
+  const response = await fetch('/api/data');
+  return response.json();
+});
+
+if (asyncError) {
+  console.log('Fetch failed:', asyncError.message);
+} else {
+  console.log('Data fetched:', asyncResult);
+}
+```
+
+#### Advanced Examples
+
+```typescript
+// Example 1: Testing helper
+class TestHelper {
+  static async runTest<T>(
+    testFn: () => T | Promise<T>
+  ): Promise<{ success: boolean; result?: T; error?: Error }> {
+    const [error, result] = await safeRun(testFn);
+    
+    return {
+      success: !error,
+      result,
+      error
+    };
+  }
+}
+
+// Usage in tests
+describe('OrderService', () => {
+  it('should handle errors gracefully', async () => {
+    const service = new OrderService();
+    const { success, error } = await TestHelper.runTest(
+      () => service.processOrder(invalidOrder)
+    );
+    
+    expect(success).toBe(false);
+    expect(error?.message).toContain('Invalid order');
+  });
+});
+
+// Example 2: Batch operations with error collection
+async function processBatch<T>(
+  items: T[],
+  processor: (item: T) => Promise<void>
+): Promise<{ succeeded: T[]; failed: Array<{ item: T; error: Error }> }> {
+  const succeeded: T[] = [];
+  const failed: Array<{ item: T; error: Error }> = [];
+  
+  for (const item of items) {
+    const [error] = await safeRun(() => processor(item));
+    
+    if (error) {
+      failed.push({ item, error });
+    } else {
+      succeeded.push(item);
+    }
+  }
+  
+  return { succeeded, failed };
+}
+
+// Example 3: Graceful degradation
+class DataService {
+  async getData(): Promise<Data> {
+    // Try primary source
+    const [primaryError, primaryData] = await safeRun(
+      () => this.fetchFromPrimary()
+    );
+    
+    if (!primaryError) {
+      return primaryData!;
+    }
+    
+    // Fallback to secondary source
+    const [secondaryError, secondaryData] = await safeRun(
+      () => this.fetchFromSecondary()
+    );
+    
+    if (!secondaryError) {
+      return secondaryData!;
+    }
+    
+    // Use cached data as last resort
+    const [cacheError, cachedData] = safeRun(
+      () => this.getFromCache()
+    );
+    
+    if (!cacheError) {
+      return cachedData!;
+    }
+    
+    throw new Error('All data sources failed');
+  }
+}
+```
+
+#### Integration with Domain Patterns
+
+```typescript
+// Example 1: Safe domain event handling
+class EventBus {
+  async publishSafely(event: DomainEvent): Promise<void> {
+    const handlers = this.getHandlersFor(event);
+    
+    for (const handler of handlers) {
+      const [error] = await safeRun(() => handler.handle(event));
+      
+      if (error) {
+        this.logger.error(`Handler ${handler.name} failed:`, error);
+        // Continue with other handlers
+      }
+    }
+  }
+}
+
+// Example 2: Safe specification checking
+class SafeSpecificationService {
+  checkSpecifications<T>(
+    entity: T,
+    specs: ISpecification<T>[]
+  ): { 
+    satisfied: ISpecification<T>[]; 
+    failed: ISpecification<T>[]; 
+    errors: Array<{ spec: ISpecification<T>; error: Error }> 
+  } {
+    const satisfied: ISpecification<T>[] = [];
+    const failed: ISpecification<T>[] = [];
+    const errors: Array<{ spec: ISpecification<T>; error: Error }> = [];
+    
+    for (const spec of specs) {
+      const [error, result] = safeRun(() => spec.isSatisfiedBy(entity));
+      
+      if (error) {
+        errors.push({ spec, error });
+      } else if (result) {
+        satisfied.push(spec);
+      } else {
+        failed.push(spec);
+      }
+    }
+    
+    return { satisfied, failed, errors };
+  }
+}
+
+// Example 3: Safe repository operations
+class SafeRepository<T extends Entity<any>> {
+  constructor(private readonly inner: Repository<T>) {}
+  
+  async safeSave(entity: T): Promise<Result<void, Error>> {
+    const [error] = await safeRun(() => this.inner.save(entity));
+    
+    if (error) {
+      return Result.fail(error);
+    }
+    
+    return Result.ok();
+  }
+  
+  async safeFindById(id: string): Promise<Result<T | null, Error>> {
+    const [error, result] = await safeRun(() => this.inner.findById(id));
+    
+    if (error) {
+      return Result.fail(error);
+    }
+    
+    return Result.ok(result);
+  }
+}
+```
+
+### LibUtils Best Practices
+
+1. **Use appropriate empty checks**:
+
+```typescript
+// Good - use specific method for intent
+if (LibUtils.isEmpty(value)) {
+  // Handle empty case
+}
+
+if (LibUtils.hasValue(value)) {
+  // Handle non-empty case
+}
+
+// Avoid - don't mix different concepts
+if (!LibUtils.isFalsy(value)) { // Confusing
+  // Handle case
+}
+```
+
+2. **Validate IDs consistently**:
+
+```typescript
+// Good - validate in constructor
+class UserId {
+  constructor(private readonly value: string) {
+    if (!LibUtils.isValidUUID(value)) {
+      throw new Error('Invalid user ID');
+    }
+  }
+}
+
+// Good - generate if not provided
+class Order {
+  constructor(id?: string) {
+    this.id = id || LibUtils.getUUID();
+  }
+}
+```
+
+3. **Use deep equality for value objects**:
+
+```typescript
+// Good - compare by value
+class Money {
+  equals(other: Money): boolean {
+    return LibUtils.deepEqual(
+      { amount: this.amount, currency: this.currency },
+      { amount: other.amount, currency: other.currency }
+    );
+  }
+}
+```
+
+### SafeRun Best Practices
+
+1. **Prefer specific error handling in production**:
+
+```typescript
+// Good for tests
+const [error, result] = safeRun(() => someOperation());
+
+// Better for production
+try {
+  const result = someOperation();
+  // Handle success
+} catch (error) {
+  // Handle specific error types
+}
+```
+
+2. **Use type-safe error handling**:
+
+```typescript
+// Good - maintain error types
+const [error, result] = safeRun<ValidationError, User>(() => 
+  validateUser(data)
+);
+
+if (error) {
+  // error is typed as ValidationError
+  console.log(error.field);
+}
+```
+
+3. **Don't overuse safeRun**:
+
+```typescript
+// Bad - unnecessary for simple operations
+const [error, result] = safeRun(() => user.name);
+
+// Good - use for operations that might throw
+const [error, result] = safeRun(() => JSON.parse(jsonString));
+
+// For expecting error, `result` can be omitted
+```
+
+The Utils module in DomainTS provides:
+
+**LibUtils**:
+
+- **Essential Utilities**: UUID generation, validation, comparison
+- **Value Checking**: Comprehensive empty/truthy/falsy detection
+- **Type Safety**: Proper handling of different JavaScript types
+- **Domain Support**: Foundation for entities and value objects
+
+**SafeRun**:
+
+- **Error Safety**: Execute functions without try-catch
+- **Type Preservation**: Maintain error and result types
+- **Testing Support**: Simplify test error handling
+- **Graceful Degradation**: Handle failures elegantly
+
+These utilities form the backbone of many DomainTS patterns, providing reliable, type-safe operations throughout your domain implementation.
+
+# Outbox Pattern in DomainTS - LLM-Optimized Guide
+
+## Document Metadata
+
+- **Pattern Name**: Outbox Pattern
+- **Category**: Infrastructure Pattern
+- **Purpose**: Ensure reliable message publishing in distributed systems
+- **Library**: DomainTS
+- **Language**: TypeScript
+- **Version**: 1.0.0
+
+## Pattern Overview
+
+### What is the Outbox Pattern?
+
+The Outbox Pattern ensures atomicity between database transactions and message publishing. Instead of directly publishing messages after database operations, messages are stored in an "outbox" table within the same transaction. A separate process then publishes these messages asynchronously.
+
+**Core Benefit**: Prevents data inconsistency when database operations succeed but message publishing fails.
+
+### Primary Use Cases
+
+1. **Reliable Event Publishing**: Guarantee domain events are not lost
+2. **Integration Events**: Safely communicate changes to external systems
+3. **Asynchronous Communication**: Decouple message publishing from business transactions
+4. **System Resilience**: Handle temporary failures in message infrastructure
+
+## Core Components
+
+### 1. IOutboxMessage Interface
+
+```typescript
+interface IOutboxMessage<T = any> {
+  id: string;                    // Unique identifier
+  messageType: string;           // Type for routing/handling
+  payload: T;                    // Message content
+  metadata: Record<string, any>; // Additional context
+  status: MessageStatus;         // Processing state
+  attempts: number;              // Retry counter
+  createdAt: Date;              // Creation timestamp
+  processAfter?: Date;          // Delayed processing
+  priority?: MessagePriority;    // Processing order
+  lastError?: string;           // Error information
+}
+```
+
+### 2. Supporting Enums
+
+```typescript
+enum MessageStatus {
+  PENDING = 'PENDING',       // Awaiting processing
+  PROCESSING = 'PROCESSING', // Currently being processed
+  PROCESSED = 'PROCESSED',   // Successfully completed
+  FAILED = 'FAILED'         // Processing failed
+}
+
+enum MessagePriority {
+  LOW = 'low',
+  NORMAL = 'normal',
+  HIGH = 'high',
+  CRITICAL = 'critical'
+}
+```
+
+### 3. OutboxMessageFactory
+
+Factory for creating outbox messages with common patterns:
+
+```typescript
+class OutboxMessageFactory {
+  static createMessage<T>(messageType: string, payload: T, options?: OutboxMessageOptions): IOutboxMessage<T>;
+  static createDelayedMessage<T>(messageType: string, payload: T, delayMs: number, options?: OutboxMessageOptions): IOutboxMessage<T>;
+  static createHighPriorityMessage<T>(messageType: string, payload: T, options?: OutboxMessageOptions): IOutboxMessage<T>;
+  static createFromIntegrationEvent<T>(event: IntegrationEvent, options?: OutboxMessageOptions): IOutboxMessage<T>;
+}
+```
+
+### 4. IOutboxRepository
+
+Abstract interface for outbox persistence:
+
+```typescript
+abstract class IOutboxRepository {
+  // Core operations
+  abstract saveMessage<T>(message: IOutboxMessage<T>): Promise<string>;
+  abstract saveBatch<T>(messages: IOutboxMessage<T>[]): Promise<string[]>;
+  
+  // Retrieval
+  abstract getUnprocessedMessages(limit?: number, priorityOrder?: MessagePriority[]): Promise<IOutboxMessage[]>;
+  abstract getById(id: string): Promise<IOutboxMessage | null>;
+  
+  // Status management
+  abstract updateStatus(id: string, status: MessageStatus, error?: Error): Promise<void>;
+  abstract incrementAttempt(id: string): Promise<number>;
+  
+  // Maintenance
+  abstract deleteByStatusAndAge(olderThan: Date, status: MessageStatus): Promise<number>;
+}
+```
+
+## Basic Usage Pattern
+
+### 1. Saving Messages with Domain Operations
+
+```typescript
+class OrderService {
+  async placeOrder(order: Order): Promise<void> {
+    await this.unitOfWork.transaction(async () => {
+      // Save domain changes
+      await this.orderRepository.save(order);
+      
+      // Create outbox message in same transaction
+      const outboxMessage = OutboxMessageFactory.createMessage(
+        'OrderPlaced',
+        { orderId: order.id, customerId: order.customerId, totalAmount: order.totalAmount }
+      );
+      
+      await this.outboxRepository.saveMessage(outboxMessage);
+    });
+  }
+}
+```
+
+### 2. Processing Outbox Messages
+
+```typescript
+class OutboxProcessor {
+  async processMessages(): Promise<void> {
+    const messages = await this.outboxRepository.getUnprocessedMessages(10);
+    
+    for (const message of messages) {
+      try {
+        await this.outboxRepository.updateStatus(message.id, MessageStatus.PROCESSING);
+        await this.eventBus.publish(message.messageType, message.payload);
+        await this.outboxRepository.updateStatus(message.id, MessageStatus.PROCESSED);
+      } catch (error) {
+        await this.handleFailure(message, error);
+      }
+    }
+  }
+  
+  private async handleFailure(message: IOutboxMessage, error: Error): Promise<void> {
+    const attempts = await this.outboxRepository.incrementAttempt(message.id);
+    
+    if (attempts >= 3) {
+      await this.outboxRepository.updateStatus(message.id, MessageStatus.FAILED, error);
+    } else {
+      // Return to pending for retry
+      await this.outboxRepository.updateStatus(message.id, MessageStatus.PENDING);
+    }
+  }
+}
+```
+
+## Key Concepts
+
+### Message States and Transitions
+
+- **PENDING → PROCESSING**: Message picked up for processing
+- **PROCESSING → PROCESSED**: Successful completion
+- **PROCESSING → FAILED**: Final failure after retries
+- **FAILED/PENDING → PROCESSING**: Retry attempt
+
+### Priority Processing
+
+Messages are processed based on priority (CRITICAL → HIGH → NORMAL → LOW). Critical business events (payments, security) should use higher priorities.
+
+### Delayed Processing
+
+Messages can be scheduled for future processing using `processAfter` field. Useful for reminders, scheduled tasks, or implementing delays between retries.
+
+### Batch Operations
+
+Multiple messages can be saved in a single transaction using `saveBatch()` for related events that must be published together.
+
+## Best Practices
+
+### 1. Transaction Boundaries
+
+Always save outbox messages within the same transaction as domain changes:
+
+```typescript
+// Correct
+await transaction(async () => {
+  await saveOrder(order);
+  await saveOutboxMessage(message);
+});
+```
+
+### 2. Message Design
+
+Messages should be self-contained with all necessary information. Avoid designs requiring additional lookups.
+
+### 3. Idempotency
+
+Ensure message handlers are idempotent - processing the same message multiple times should have the same effect as processing it once.
+
+### 4. Error Handling
+
+Implement retry logic with exponential backoff for transient errors. Distinguish between retriable and permanent failures.
+
+### 5. Monitoring
+
+Track key metrics:
+
+- Pending messages count
+- Processing time
+- Failure rate
+- Message age
+
+## Performance Considerations
+
+1. **Database Indexes**: Create indexes on status, priority, and processAfter fields
+2. **Batch Processing**: Process messages in batches for better throughput
+3. **Concurrent Processing**: Use database row locking (e.g., `FOR UPDATE SKIP LOCKED`)
+4. **Cleanup**: Regularly delete old processed messages
+
+## Integration with DomainTS
+
+The Outbox Pattern integrates seamlessly with other DomainTS components:
+
+- **Unit of Work**: Ensures messages are saved in the same transaction
+- **Domain Events**: Automatically converted to outbox messages
+- **Event Bus**: Publishes messages after successful processing
+- **Repository Pattern**: Consistent data access patterns
+
+## Conclusion
+
+The Outbox Pattern provides reliable message publishing with:
+
+- **Atomicity**: Database and message operations in single transaction
+- **Reliability**: Guaranteed delivery with retry mechanisms
+- **Flexibility**: Support for priorities, delays, and batch operations
+- **Resilience**: Handles failures gracefully with configurable retries
+
+This pattern is essential for maintaining consistency in distributed systems while ensuring reliable communication between services.
+
+# Value Objects in DomainTS - LLM-Optimized Guide
+
+## Document Metadata
+
+- **Pattern Name**: Value Objects
+- **Category**: Domain-Driven Design (DDD) Pattern
+- **Purpose**: Represent immutable, self-validating domain concepts without identity
+- **Library**: DomainTS
+- **Language**: TypeScript
+- **Version**: 1.0.0
+
+## Pattern Overview
+
+### What are Value Objects?
+
+Value Objects represent descriptive aspects of the domain with no conceptual identity. They are defined by their attributes rather than a unique identifier. Examples include Money, Email, Address, or DateRange.
+
+**Key Characteristics**:
+- Immutable (cannot be changed after creation)
+- Equality based on value, not identity
+- Self-validating
+- Side-effect free
+
+### Primary Use Cases
+
+1. **Domain Concepts**: Model concepts like Money, Email, PhoneNumber
+2. **Type Safety**: Prevent primitive obsession
+3. **Business Rules**: Encapsulate validation and constraints
+4. **Composition**: Build complex value objects from simpler ones
+
+## Core Components
+
+### 1. BaseValueObject
+
+Abstract base class for all value objects:
+
+```typescript
+abstract class BaseValueObject<T> implements ValueObjectValidator<T> {
+  protected readonly value: T;
+
+  constructor(value: T);
+  
+  // Equality comparison
+  equals(valueObject: BaseValueObject<T>): boolean;
+  
+  // String representation
+  toString(): string;
+  
+  // JSON serialization
+  toJSON(): string;
+  
+  // Get raw value
+  getValue(): T;
+  
+  // Validation - must be implemented
+  abstract validate(value: any): boolean;
+}
+```
+
+### 2. ValueObjectValidator Interface
+
+```typescript
+interface ValueObjectValidator<T> {
+  validate(value: T): boolean;
+}
+```
+
+### 3. EntityId Value Object
+
+Specialized value object for entity identifiers:
+
+```typescript
+class EntityId<T = string> extends BaseValueObject<T> {
+  private readonly type: IdType;
+
+  constructor(value: T, type: IdType);
+  
+  // Factory methods
+  static createWithRandomUUID(): EntityId;
+  static fromUUID(value: string): EntityId;
+  static fromInteger(value: number): EntityId;
+  static fromBigInt(value: string | bigint): EntityId;
+  static fromText(value: string): EntityId;
+  
+  // Type checking
+  getType(): IdType;
+  isType(type: IdType): boolean;
+}
+```
+
+### 4. Supported ID Types
+
+```typescript
+type IdType = 'uuid' | 'integer' | 'text' | 'bigint';
+```
+
+## Implementation Pattern
+
+### Creating Custom Value Objects
+
+```typescript
+class Email extends BaseValueObject<string> {
+  constructor(value: string) {
+    super(value);
+    if (!this.validate(value)) {
+      throw new InvalidParameterError('Invalid email format');
+    }
+  }
+  
+  validate(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }
+  
+  getDomain(): string {
+    return this.value.split('@')[1];
+  }
+}
+```
+
+### Using EntityId
+
+```typescript
+// Create new UUID
+const id1 = EntityId.createWithRandomUUID();
+
+// From existing UUID
+const id2 = EntityId.fromUUID('550e8400-e29b-41d4-a716-446655440000');
+
+// From integer
+const id3 = EntityId.fromInteger(12345);
+
+// From text
+const id4 = EntityId.fromText('order-2024-001');
+
+// From BigInt
+const id5 = EntityId.fromBigInt('9007199254740991');
+```
+
+## Key Concepts
+
+### Immutability
+
+Value objects are immutable. To "change" a value object, create a new instance:
+
+```typescript
+class Money extends BaseValueObject<{ amount: number; currency: string }> {
+  add(other: Money): Money {
+    // Returns new instance instead of modifying current one
+    return new Money({
+      amount: this.value.amount + other.value.amount,
+      currency: this.value.currency
+    });
+  }
+}
+```
+
+### Equality
+
+Value objects are compared by value, not reference:
+
+```typescript
+const email1 = new Email('user@example.com');
+const email2 = new Email('user@example.com');
+
+email1.equals(email2); // true - same value
+email1 === email2;     // false - different instances
+```
+
+### Validation
+
+Validation happens at construction time:
+
+```typescript
+class Age extends BaseValueObject<number> {
+  constructor(value: number) {
+    super(value);
+    if (!this.validate(value)) {
+      throw new InvalidParameterError('Age must be between 0 and 150');
+    }
+  }
+  
+  validate(value: number): boolean {
+    return value >= 0 && value <= 150;
+  }
+}
+```
+
+## Best Practices
+
+### 1. Fail Fast
+
+Always validate in constructor:
+
+```typescript
+// Good
+constructor(value: string) {
+  super(value);
+  if (!this.validate(value)) {
+    throw new InvalidParameterError('Invalid value');
+  }
+}
+```
+
+### 2. Meaningful Factory Methods
+
+Provide clear factory methods for different creation scenarios:
+
+```typescript
+class DateRange extends BaseValueObject<{ start: Date; end: Date }> {
+  static fromDates(start: Date, end: Date): DateRange {
+    return new DateRange({ start, end });
+  }
+  
+  static forDays(startDate: Date, days: number): DateRange {
+    const end = new Date(startDate);
+    end.setDate(end.getDate() + days);
+    return new DateRange({ start: startDate, end });
+  }
+}
+```
+
+### 3. Rich Behavior
+
+Add domain-specific methods:
+
+```typescript
+class PhoneNumber extends BaseValueObject<string> {
+  getCountryCode(): string {
+    return this.value.substring(0, 3);
+  }
+  
+  getAreaCode(): string {
+    return this.value.substring(3, 6);
+  }
+  
+  format(): string {
+    return `(${this.getAreaCode()}) ${this.value.substring(6)}`;
+  }
+}
+```
+
+### 4. Type Safety with EntityId
+
+Use specific ID types to prevent mixing identifiers:
+
+```typescript
+class OrderId extends EntityId<string> {
+  constructor(value: string) {
+    super(value, 'uuid');
+  }
+}
+
+class CustomerId extends EntityId<string> {
+  constructor(value: string) {
+    super(value, 'uuid');
+  }
+}
+
+// Prevents mixing IDs from different entities
+function processOrder(orderId: OrderId, customerId: CustomerId) {
+  // Type-safe operations
+}
+```
+
+## Integration with DomainTS
+
+Value Objects integrate seamlessly with other DomainTS components:
+
+### With Entities
+
+```typescript
+class Order extends BaseEntity<OrderId> {
+  constructor(
+    id: OrderId,
+    private customerEmail: Email,
+    private totalAmount: Money,
+    private shippingAddress: Address
+  ) {
+    super(id);
+  }
+}
+```
+
+### With Domain Events
+
+```typescript
+class OrderPlacedEvent extends BaseDomainEvent {
+  constructor(
+    public readonly orderId: OrderId,
+    public readonly customerEmail: Email,
+    public readonly totalAmount: Money
+  ) {
+    super();
+  }
+}
+```
+
+### With Specifications
+
+```typescript
+class MinimumOrderAmountSpec extends CompositeSpecification<Order> {
+  constructor(private minimumAmount: Money) {
+    super();
+  }
+  
+  isSatisfiedBy(order: Order): boolean {
+    return order.totalAmount.isGreaterThan(this.minimumAmount);
+  }
+}
+```
+
+## Performance Considerations
+
+1. **Caching**: Consider caching frequently used value objects
+2. **Validation Cost**: Keep validation logic efficient
+3. **Memory Usage**: Be mindful of creating many small objects
+4. **Serialization**: Implement efficient `toJSON()` methods
+
+## Error Handling
+
+DomainTS provides specific errors for value object violations:
+
+- `MissingValueError`: When required value is missing
+- `InvalidParameterError`: When validation fails
+
+```typescript
+static fromUUID(value: string): EntityId {
+  if (!LibUtils.hasValue(value)) {
+    throw MissingValueError.withValue('entity identifier');
+  }
+  
+  if (!LibUtils.isValidUUID(value)) {
+    throw InvalidParameterError.withParameter('entity identifier');
+  }
+  
+  return new EntityId(value, 'uuid');
+}
+```
+
+## Conclusion
+
+Value Objects in DomainTS provide:
+
+- **Type Safety**: Prevent primitive obsession
+- **Domain Modeling**: Express domain concepts clearly
+- **Validation**: Ensure business rules at construction
+- **Immutability**: Predictable behavior without side effects
+- **Reusability**: Share common domain concepts
+
+The pattern is essential for building a rich domain model that captures business rules and prevents invalid states, while the EntityId implementation provides type-safe identifiers across your domain.
+
+# Repository Pattern in DomainTS - LLM-Optimized Guide
+
+## Document Metadata
+
+- **Pattern Name**: Repository Pattern
+- **Category**: Domain-Driven Design (DDD) Pattern
+- **Purpose**: Encapsulate persistence logic for aggregates
+- **Library**: DomainTS
+- **Language**: TypeScript
+- **Version**: 1.0.0
+
+## Pattern Overview
+
+### What are Repositories?
+
+Repositories provide a collection-like interface for accessing aggregates. They encapsulate persistence logic and act as an in-memory collection of domain objects, hiding the details of data storage.
+
+**Core Principle**: Repositories deal only with aggregate roots, not individual entities within aggregates.
+
+### Primary Use Cases
+
+1. **Aggregate Persistence**: Save and retrieve aggregate roots
+2. **Data Access Abstraction**: Hide storage implementation details
+3. **Domain Event Integration**: Dispatch events after persistence
+4. **Concurrency Control**: Manage aggregate versions
+
+## Core Components
+
+### 1. IRepository Interface
+
+Basic repository contract with minimal operations:
+
+```typescript
+interface IRepository<T extends IAggregateRoot<any>> {
+  // Find aggregate by ID
+  findById?(id: any): Promise<T | null>;
+  
+  // Save aggregate (create or update)
+  save(aggregate: T): Promise<void>;
+  
+  // Delete aggregate
+  delete?(aggregate: T): Promise<void>;
+}
+```
+
+### 2. IExtendedRepository Interface
+
+Extended functionality for advanced use cases:
+
+```typescript
+interface IExtendedRepository<T extends IAggregateRoot<any>> extends IRepository<T> {
+  // Check existence
+  exists(id: any): Promise<boolean>;
+  
+  // Find by specification
+  findBySpecification?(spec: any): Promise<T[]>;
+  findOneBySpecification?(spec: any): Promise<T | null>;
+}
+```
+
+### 3. IBaseRepository Abstract Class
+
+Base implementation with event handling and versioning:
+
+```typescript
+abstract class IBaseRepository {
+  constructor(protected readonly eventDispatcher: IEventDispatcher);
+  
+  async save(aggregate: AggregateRoot): Promise<void> {
+    // 1. Get domain events from aggregate
+    // 2. Check version for optimistic concurrency
+    // 3. Apply event handlers
+    // 4. Dispatch events
+  }
+  
+  abstract getCurrentVersion(id: any): Promise<number>;
+}
+```
+
+## Key Concepts
+
+### Aggregate-Only Access
+
+Repositories only handle aggregate roots, never individual entities:
+
+```typescript
+// Correct
+orderRepository.findById(orderId);
+
+// Incorrect - OrderItem is not an aggregate root
+orderItemRepository.findById(itemId); // ❌
+```
+
+### Event Integration
+
+The `IBaseRepository` automatically handles domain events during save:
+
+1. Extracts events from aggregate
+2. Applies event handlers to update state
+3. Dispatches events to event dispatcher
+
+### Optimistic Concurrency Control
+
+Version checking prevents concurrent modifications:
+
+```typescript
+const currentVersion = await this.getCurrentVersion(aggregate.getId());
+if (initialVersion !== currentVersion) {
+  throw VersionError.withEntityIdAndVersions(
+    aggregate.getId(),
+    currentVersion,
+    initialVersion
+  );
+}
+```
+
+### Event Handler Convention
+
+Repositories must implement handlers for domain events:
+
+```typescript
+class OrderRepository extends IBaseRepository {
+  // Handler for OrderCreated event
+  async handleOrderCreated(payload: OrderCreatedPayload): Promise<void> {
+    // Persist order data
+  }
+  
+  // Handler for OrderShipped event
+  async handleOrderShipped(payload: OrderShippedPayload): Promise<void> {
+    // Update order status
+  }
+}
+```
+
+## Implementation Pattern
+
+### Basic Repository Implementation
+
+```typescript
+class OrderRepository implements IRepository<Order> {
+  async findById(id: OrderId): Promise<Order | null> {
+    // Fetch from database
+    const data = await this.db.orders.findOne({ id: id.getValue() });
+    if (!data) return null;
+    
+    // Reconstruct aggregate
+    return OrderMapper.toDomain(data);
+  }
+  
+  async save(order: Order): Promise<void> {
+    // Convert to persistence model
+    const data = OrderMapper.toPersistence(order);
+    
+    // Save to database
+    await this.db.orders.upsert(data);
+  }
+  
+  async delete(order: Order): Promise<void> {
+    await this.db.orders.delete({ id: order.getId().getValue() });
+  }
+}
+```
+
+### Event-Sourced Repository
+
+```typescript
+class EventSourcedOrderRepository extends IBaseRepository {
+  async getCurrentVersion(id: OrderId): Promise<number> {
+    const events = await this.eventStore.getEvents(id.getValue());
+    return events.length;
+  }
+  
+  async handleOrderCreated(payload: OrderCreatedPayload): Promise<void> {
+    await this.eventStore.append({
+      aggregateId: payload.orderId,
+      eventType: 'OrderCreated',
+      payload
+    });
+  }
+  
+  async findById(id: OrderId): Promise<Order | null> {
+    const events = await this.eventStore.getEvents(id.getValue());
+    if (events.length === 0) return null;
+    
+    // Rebuild aggregate from events
+    return Order.fromEvents(events);
+  }
+}
+```
+
+## Best Practices
+
+### 1. Aggregate Boundaries
+
+Only create repositories for aggregate roots:
+
+```typescript
+// Correct
+class OrderRepository implements IRepository<Order> { }
+class CustomerRepository implements IRepository<Customer> { }
+
+// Incorrect - these are not aggregate roots
+class OrderItemRepository { } // ❌
+class AddressRepository { } // ❌
+```
+
+### 2. Specification Pattern Integration
+
+Use specifications for complex queries:
+
+```typescript
+class OrderRepository implements IExtendedRepository<Order> {
+  async findBySpecification(spec: ISpecification<Order>): Promise<Order[]> {
+    // Translate specification to query
+    const query = this.specificationTranslator.translate(spec);
+    
+    // Execute query
+    const results = await this.db.orders.find(query);
+    
+    // Map to domain objects
+    return results.map(OrderMapper.toDomain);
+  }
+}
+```
+
+### 3. Transactional Consistency
+
+Ensure all operations within save are transactional:
+
+```typescript
+async save(order: Order): Promise<void> {
+  await this.db.transaction(async (tx) => {
+    // Save order
+    await tx.orders.upsert(orderData);
+    
+    // Save related data
+    await tx.orderItems.upsertMany(itemsData);
+    
+    // Update inventory
+    await tx.inventory.decrementMany(inventoryUpdates);
+  });
+}
+```
+
+### 4. Repository Interface Segregation
+
+Create specific interfaces for different use cases:
+
+```typescript
+interface IReadOnlyOrderRepository {
+  findById(id: OrderId): Promise<Order | null>;
+  findByCustomer(customerId: CustomerId): Promise<Order[]>;
+}
+
+interface IWriteOrderRepository {
+  save(order: Order): Promise<void>;
+  delete(order: Order): Promise<void>;
+}
+```
+
+## Integration with DomainTS
+
+### With Unit of Work
+
+```typescript
+const unitOfWork = new UnitOfWork();
+const orderRepo = unitOfWork.getRepository<Order>('orders');
+
+await unitOfWork.transaction(async () => {
+  const order = await orderRepo.findById(orderId);
+  order.ship();
+  await orderRepo.save(order);
+});
+```
+
+### With Domain Events
+
+```typescript
+class OrderRepository extends IBaseRepository {
+  constructor(eventDispatcher: IEventDispatcher) {
+    super(eventDispatcher);
+  }
+  
+  // Events are automatically dispatched after save
+}
+```
+
+### With Specifications
+
+```typescript
+const openOrdersSpec = new OpenOrdersSpecification();
+const highValueSpec = new HighValueOrderSpecification(1000);
+const combinedSpec = openOrdersSpec.and(highValueSpec);
+
+const orders = await orderRepository.findBySpecification(combinedSpec);
+```
+
+## Error Handling
+
+The repository pattern in DomainTS includes specific error types:
+
+- `VersionError`: Thrown when concurrent modification is detected
+- `Missing handler error`: Thrown when event handler is not implemented
+
+```typescript
+if (initialVersion !== currentVersion) {
+  throw VersionError.withEntityIdAndVersions(
+    aggregate.getId(),
+    currentVersion,
+    initialVersion
+  );
+}
+```
+
+## Conclusion
+
+Repository Pattern in DomainTS provides:
+
+- **Clean Abstraction**: Separates domain logic from persistence
+- **Event Integration**: Automatic domain event handling
+- **Concurrency Control**: Version checking for consistency
+- **Flexibility**: Support for different persistence strategies
+- **Type Safety**: Strong typing for aggregates and specifications
+
+The pattern enables clean separation of concerns while maintaining consistency and supporting both traditional and event-sourced persistence approaches.
+
+# Error Handling in DomainTS - LLM-Optimized Guide
+
+## Document Metadata
+
+- **Pattern Name**: Error Handling System
+- **Category**: Core Infrastructure
+- **Purpose**: Structured error handling for domain, application, and framework layers
+- **Library**: DomainTS
+- **Language**: TypeScript
+- **Version**: 1.0.0
+
+## Pattern Overview
+
+### What is the Error Handling System?
+
+DomainTS provides a hierarchical error handling system that distinguishes between domain, application, and framework errors. It offers structured error classes with specific error codes and metadata support.
+
+**Core Concept**:
+```typescript
+// Domain errors carry specific context and codes
+throw MissingValueError.withValue('email', { 
+  domain: 'user',
+  code: DomainErrorCode.MissingValue 
+});
+```
+
+## Core Components
+
+### 1. BaseError
+
+Foundation for all error types:
+
+```typescript
+abstract class BaseError extends Error {
+  constructor(message: string);
+  // Captures proper stack trace and sets error name
+}
+```
+
+### 2. IDomainError
+
+Abstract base for domain-specific errors:
+
+```typescript
+abstract class IDomainError extends BaseError {
+  domain?: string | any;        // Domain context
+  code: DomainErrorCode;        // Specific error code
+  data?: unknown;               // Additional error data
+  timestamp?: Date;             // When error occurred
+  error?: Error;                // Original error if wrapped
+}
+```
+
+### 3. Concrete Domain Errors
+
+Pre-defined domain error types with factory methods:
+
+- **MissingValueError**: When required values are missing
+- **InvalidParameterError**: When parameters don't meet requirements
+- **DuplicateError**: When uniqueness constraints are violated
+- **NotFoundError**: When entities cannot be found
+
+### 4. Error Code Enums
+
+Three categories of error codes:
+
+- **DomainErrorCode**: Domain layer errors (D_* prefix)
+- **ApplicationErrorCode**: Application layer errors (A_* prefix)
+- **FrameworkErrorCode**: Framework/infrastructure errors (F_* prefix)
+
+## Usage Patterns
+
+### Creating Domain Errors
+
+```typescript
+// Missing value with context
+throw MissingValueError.withValue('customer email', {
+  domain: 'order',
+  data: { orderId: '123' }
+});
+
+// Invalid parameter with details
+throw InvalidParameterError.withParameter('age', 'Age must be positive', {
+  domain: 'customer',
+  data: { providedValue: -5 }
+});
+
+// Duplicate entity
+throw DuplicateError.withEntityId('user-123', {
+  domain: 'user',
+  data: { email: 'duplicate@example.com' }
+});
+```
+
+### Error Structure
+
+Each domain error includes:
+- **message**: Human-readable error description
+- **code**: Enum value for programmatic handling
+- **domain**: Context where error occurred
+- **data**: Additional error-specific information
+- **timestamp**: When error was created
+- **error**: Original error if this wraps another error
+
+## Error Code Categories
+
+### Domain Error Codes (D_*)
+- Basic validation and business rule violations
+- Entity-specific errors (not found, duplicate)
+- Data format and parameter errors
+
+### Application Error Codes (A_*)
+- Service-level errors
+- Permission and authorization failures
+- External system integration errors
+
+### Framework Error Codes (F_*)
+- Infrastructure and configuration errors
+- Security and rate limiting
+- Service availability issues
+
+## Best Practices
+
+1. **Use Factory Methods**: Prefer static factory methods over direct instantiation
+2. **Provide Context**: Always include relevant domain and data information
+3. **Choose Appropriate Codes**: Use specific error codes for better error handling
+4. **Wrap External Errors**: Use the `error` property to preserve original errors
+
+## Integration with DomainTS
+
+The error system integrates with:
+- **Result Pattern**: Errors can be wrapped in Result.fail()
+- **Validation**: Validation errors extend these base error types
+- **Domain Services**: Services throw domain-specific errors
+- **Repositories**: Data access errors use appropriate error types
+
+## Conclusion
+
+DomainTS error handling provides:
+- **Structured Errors**: Consistent error format across the system
+- **Contextual Information**: Rich metadata for debugging
+- **Layer Separation**: Different error types for different architectural layers
+- **Type Safety**: Full TypeScript support with enums and interfaces
+
+This system enables precise error handling and reporting throughout your domain-driven application.
+
+# Aggregates in DomainTS - LLM-Optimized Guide
+
+## Document Metadata
+
+- **Pattern Name**: Aggregate Root
+- **Category**: Domain-Driven Design (DDD) Pattern
+- **Purpose**: Maintain consistency boundaries and coordinate domain object changes
+- **Library**: DomainTS
+- **Language**: TypeScript
+- **Version**: 1.0.0
+
+## Pattern Overview
+
+### What are Aggregates?
+
+Aggregates are clusters of domain objects that are treated as a single unit for data changes. The Aggregate Root is the gateway to the aggregate, ensuring consistency and invariants.
+
+**Core Concept**:
+```typescript
+class Order extends AggregateRoot<string> {
+  constructor(id: EntityId<string>) {
+    super({ id });
+  }
+  
+  // Apply domain events to change state
+  placeOrder(customerId: string) {
+    this.apply('OrderPlaced', { customerId });
+  }
+  
+  // Handle events to update state
+  protected onOrderPlaced(payload: { customerId: string }) {
+    this.customerId = payload.customerId;
+  }
+}
+```
+
+## Core Components
+
+### 1. IAggregateRoot Interface
+
+Base interface for all aggregate roots:
+
+```typescript
+interface IAggregateRoot<TId = string> {
+  getVersion(): number;
+  getInitialVersion(): number;
+  hasChanges(): boolean;
+  commit(): void;
+  getId(): EntityId<TId>;
+  getDomainEvents(): ReadonlyArray<IExtendedDomainEvent>;
+}
+```
+
+### 2. AggregateRoot Class
+
+Complete implementation with optional capabilities:
+
+```typescript
+class AggregateRoot<TId = string, TState = any, TMeta = object>
+  implements IAggregateRoot<TId>, ISnapshotable<TState, TMeta>, IVersioned {
+  
+  constructor({ id, version = 0 }: IAggregateConstructorParams<TId>);
+  
+  // Core functionality
+  protected apply(eventType: string, payload: any, metadata?: Partial<IEventMetadata>): void;
+  protected apply(domainEvent: IDomainEvent, metadata?: Partial<IEventMetadata>): void;
+  
+  // Optional features
+  enableSnapshots(): this;
+  enableVersioning(): this;
+}
+```
+
+### 3. Optional Capabilities
+
+**Snapshots** (ISnapshotable):
+- Save aggregate state at a point in time
+- Restore from saved state
+- Optimize event replay
+
+**Versioning** (IVersioned):
+- Support for event schema evolution
+- Register upcasters for event transformation
+- Handle multiple event versions
+
+### 4. Aggregate-Specific Errors
+
+```typescript
+class AggregateError extends IDomainError {
+  static invalidArguments(message: string): AggregateError;
+  static versionConflict(...): AggregateError;
+  static featureNotEnabled(feature: string): AggregateError;
+  static methodNotImplemented(methodName: string): AggregateError;
+  static invalidSnapshot(aggregateType: string): AggregateError;
+  static idMismatch(snapshotId: any, aggregateId: any): AggregateError;
+  static typeMismatch(snapshotType: string, aggregateType: string): AggregateError;
+  static duplicateUpcaster(eventType: string, version: number): AggregateError;
+  static missingUpcaster(eventType: string, fromVersion: number, toVersion: number): AggregateError;
+}
+```
+
+## Key Features
+
+### 1. Event-Based State Changes
+
+Aggregates change state by applying domain events:
+
+```typescript
+class Customer extends AggregateRoot<string> {
+  private email: string;
+  
+  changeEmail(newEmail: string) {
+    // Validation
+    if (!isValidEmail(newEmail)) {
+      throw new Error('Invalid email');
+    }
+    
+    // Apply event
+    this.apply('EmailChanged', { email: newEmail });
+  }
+  
+  protected onEmailChanged(payload: { email: string }) {
+    this.email = payload.email;
+  }
+}
+```
+
+### 2. Version Control
+
+Built-in optimistic concurrency control:
+
+```typescript
+// Check version before saving
+aggregate.checkVersion(expectedVersion); // Throws on mismatch
+
+// Track versions
+aggregate.getVersion();      // Current version
+aggregate.getInitialVersion(); // Version when loaded
+```
+
+### 3. Domain Event Collection
+
+Aggregates collect domain events until committed:
+
+```typescript
+const order = new Order(id);
+order.placeOrder(customerId);
+order.addItem(productId, quantity);
+
+// Events are collected but not dispatched
+order.getDomainEvents(); // Returns 2 events
+order.hasChanges(); // true
+
+// Clear events after persistence
+order.commit();
+order.hasChanges(); // false
+```
+
+### 4. Snapshot Support
+
+Optional capability for state persistence:
+
+```typescript
+class Account extends AggregateRoot<string, AccountState> {
+  constructor(id: EntityId<string>) {
+    super({ id });
+    this.enableSnapshots();
+  }
+  
+  serializeState(): AccountState {
+    return { balance: this.balance, status: this.status };
+  }
+  
+  deserializeState(state: AccountState): void {
+    this.balance = state.balance;
+    this.status = state.status;
+  }
+}
+
+// Create snapshot
+const snapshot = account.createSnapshot();
+
+// Restore from snapshot
+const newAccount = new Account(id);
+newAccount.enableSnapshots();
+newAccount.restoreFromSnapshot(snapshot);
+```
+
+### 5. Event Versioning
+
+Support for event schema evolution:
+
+```typescript
+class Product extends AggregateRoot<string> {
+  constructor(id: EntityId<string>) {
+    super({ id });
+    this.enableVersioning();
+    
+    // Register upcaster from v1 to v2
+    this.registerUpcaster('PriceChanged', 1, {
+      upcast(payload: { price: number }) {
+        return { price: payload.price, currency: 'USD' };
+      }
+    });
+  }
+  
+  // Version-specific handlers
+  protected onPriceChanged_v1(payload: { price: number }) {
+    this.price = payload.price;
+  }
+  
+  protected onPriceChanged_v2(payload: { price: number; currency: string }) {
+    this.price = payload.price;
+    this.currency = payload.currency;
+  }
+}
+```
+
+## Usage Patterns
+
+### Basic Aggregate
+
+```typescript
+class Order extends AggregateRoot<string> {
+  private customerId: string;
+  private items: OrderItem[] = [];
+  private status: OrderStatus = 'pending';
+  
+  constructor(id: EntityId<string>) {
+    super({ id });
+  }
+  
+  place(customerId: string) {
+    this.apply('OrderPlaced', { customerId });
+  }
+  
+  addItem(productId: string, quantity: number, price: number) {
+    this.apply('ItemAdded', { productId, quantity, price });
+  }
+  
+  protected onOrderPlaced(payload: { customerId: string }) {
+    this.customerId = payload.customerId;
+  }
+  
+  protected onItemAdded(payload: { productId: string; quantity: number; price: number }) {
+    this.items.push(new OrderItem(payload.productId, payload.quantity, payload.price));
+  }
+}
+```
+
+### Event Sourced Aggregate
+
+```typescript
+class BankAccount extends AggregateRoot<string> {
+  private balance: number = 0;
+  
+  static fromHistory(id: EntityId<string>, events: IExtendedDomainEvent[]): BankAccount {
+    const account = new BankAccount(id);
+    (account as any).loadFromHistory(events);
+    return account;
+  }
+  
+  deposit(amount: number) {
+    if (amount <= 0) throw new Error('Amount must be positive');
+    this.apply('MoneyDeposited', { amount });
+  }
+  
+  withdraw(amount: number) {
+    if (amount > this.balance) throw new Error('Insufficient funds');
+    this.apply('MoneyWithdrawn', { amount });
+  }
+  
+  protected onMoneyDeposited(payload: { amount: number }) {
+    this.balance += payload.amount;
+  }
+  
+  protected onMoneyWithdrawn(payload: { amount: number }) {
+    this.balance -= payload.amount;
+  }
+}
+```
+
+## Best Practices
+
+1. **Keep Aggregates Small**: Focus on consistency boundaries
+2. **Use Domain Events**: All state changes through events
+3. **Validate in Methods**: Check invariants before applying events
+4. **Name Events Clearly**: Use past tense (OrderPlaced, ItemAdded)
+5. **Version from Start**: Enable versioning early if events might evolve
+
+## Integration with DomainTS
+
+Aggregates integrate with:
+- **Repositories**: Persist and retrieve aggregates
+- **Unit of Work**: Manage transactions and event dispatch
+- **Event Bus**: Publish collected domain events
+- **Value Objects**: Use as aggregate properties
+
+## Error Handling
+
+The system provides specific errors for aggregate operations:
+- Version conflicts for concurrency control
+- Feature not enabled for optional capabilities
+- Invalid snapshots or mismatched IDs
+- Missing event handlers or upcasters
+
+## Conclusion
+
+DomainTS Aggregates provide:
+- **Consistency Boundaries**: Enforce business invariants
+- **Event Sourcing Ready**: Built-in event collection and replay
+- **Version Control**: Optimistic concurrency handling
+- **Optional Features**: Snapshots and versioning when needed
+- **Type Safety**: Full TypeScript support with generics
+
+The pattern ensures domain consistency while providing flexibility for different persistence strategies and event sourcing implementations.
+
+# Domain Events in DomainTS - LLM-Optimized Guide
+
+## Document Metadata
+
+- **Pattern Name**: Domain Events
+- **Category**: Domain-Driven Design (DDD) Pattern
+- **Purpose**: Capture and communicate important domain occurrences
+- **Library**: DomainTS
+- **Language**: TypeScript
+- **Version**: 1.0.0
+
+## Pattern Overview
+
+### What are Domain Events?
+
+Domain Events represent something important that happened in the domain. They are immutable records of past occurrences that other parts of the system might need to know about.
+
+**Core Concept**:
+```typescript
+// Create an event when something happens
+const event = createDomainEvent('OrderPlaced', {
+  orderId: '123',
+  customerId: '456',
+  totalAmount: 100.00
+});
+
+// Or use a typed event class
+class OrderPlacedEvent extends DomainEvent<{ orderId: string; customerId: string }> {
+  constructor(payload: { orderId: string; customerId: string }) {
+    super(payload);
+  }
+}
+```
+
+## Core Components
+
+### 1. Domain Event Interfaces
+
+**IDomainEvent**: Basic event structure
+```typescript
+interface IDomainEvent<P = any> {
+  eventType: string;      // What happened
+  payload?: P;            // Event data
+}
+```
+
+**IExtendedDomainEvent**: Event with metadata
+```typescript
+interface IExtendedDomainEvent<P = any> extends IDomainEvent<P> {
+  metadata?: IEventMetadata;
+}
+```
+
+**IEventMetadata**: Contextual information
+```typescript
+interface IEventMetadata {
+  eventId?: string;               // Unique event identifier
+  timestamp?: Date;               // When it occurred
+  correlationId?: string;         // Track related operations
+  causationId?: string;           // What caused this event
+  aggregateId?: string | number;  // Source aggregate
+  aggregateType?: string;         // Type of aggregate
+  aggregateVersion?: number;      // Aggregate version after event
+  eventVersion?: number;          // Event schema version
+  userId?: string;                // Who triggered it
+  [key: string]: any;            // Additional metadata
+}
+```
+
+### 2. DomainEvent Abstract Class
+
+Base implementation for typed domain events:
+
+```typescript
+abstract class DomainEvent<T = any> implements IExtendedDomainEvent<T> {
+  readonly eventId: string;        // Auto-generated UUID
+  readonly occurredOn: Date;       // Auto-set timestamp
+  readonly eventType: string;      // Defaults to class name
+  readonly payload?: T;
+  readonly metadata?: IEventMetadata;
+  
+  constructor(payload?: T, metadata?: IEventMetadata);
+  
+  // Create copy with additional metadata
+  withMetadata(metadata: Partial<IEventMetadata>): DomainEvent<T>;
+}
+```
+
+### 3. Event Creation Utilities
+
+Factory function for creating events:
+
+```typescript
+function createDomainEvent<P = any>(
+  eventType: string,
+  payload: P,
+  metadata?: Partial<IEventMetadata>
+): IExtendedDomainEvent<P>
+```
+
+## Usage Patterns
+
+### 1. Creating Typed Event Classes
+
+```typescript
+class CustomerRegisteredEvent extends DomainEvent<{
+  customerId: string;
+  email: string;
+  registeredAt: Date;
+}> {
+  constructor(payload: {
+    customerId: string;
+    email: string;
+    registeredAt: Date;
+  }) {
+    super(payload);
+  }
+}
+
+// Usage
+const event = new CustomerRegisteredEvent({
+  customerId: '123',
+  email: 'user@example.com',
+  registeredAt: new Date()
+});
+```
+
+### 2. Using the Factory Function
+
+```typescript
+// Quick event creation
+const event = createDomainEvent('ProductAddedToCart', {
+  productId: 'prod-123',
+  quantity: 2,
+  cartId: 'cart-456'
+});
+
+// With additional metadata
+const eventWithMeta = createDomainEvent(
+  'PaymentProcessed',
+  { orderId: 'order-789', amount: 99.99 },
+  { 
+    correlationId: 'session-123',
+    userId: 'user-456'
+  }
+);
+```
+
+### 3. Adding Metadata to Events
+
+```typescript
+const originalEvent = new OrderShippedEvent({ orderId: '123' });
+
+// Add correlation for tracking
+const correlatedEvent = originalEvent.withMetadata({
+  correlationId: 'batch-456',
+  causationId: originalEvent.eventId
+});
+```
+
+### 4. Event Versioning
+
+Support for event schema evolution:
+
+```typescript
+const versionedEvent = createDomainEvent(
+  'CustomerUpdated',
+  { customerId: '123', name: 'John Doe' },
+  { eventVersion: 2 }
+);
+```
+
+## Key Concepts
+
+### Event Metadata
+
+Metadata provides context and enables advanced patterns:
+
+- **eventId**: Unique identifier for deduplication
+- **correlationId**: Track related events across services
+- **causationId**: Trace event chains
+- **aggregateId/Type/Version**: Source tracking
+- **eventVersion**: Schema evolution support
+
+### Event Naming
+
+Use past tense to indicate something has happened:
+- ✅ OrderPlaced, PaymentProcessed, CustomerRegistered
+- ❌ PlaceOrder, ProcessPayment, RegisterCustomer
+
+### Immutability
+
+Events are immutable records:
+```typescript
+// Create new event with metadata, don't modify original
+const newEvent = originalEvent.withMetadata({ userId: '123' });
+```
+
+## Integration with DomainTS
+
+Domain Events integrate with:
+
+- **Aggregates**: Emit events on state changes
+- **Event Bus**: Publish events to handlers
+- **Event Store**: Persist events for event sourcing
+- **Integration Events**: Transform to cross-boundary events
+
+## Best Practices
+
+1. **Keep Events Small**: Include only necessary data
+2. **Use Meaningful Names**: Clear, past-tense event names
+3. **Version from Start**: Include eventVersion for future evolution
+4. **Include Context**: Use metadata for tracing and correlation
+5. **Make Events Self-Contained**: Include all needed information
+
+## Example: Order Processing
+
+```typescript
+// Define domain events
+class OrderPlacedEvent extends DomainEvent<{
+  orderId: string;
+  customerId: string;
+  items: Array<{ productId: string; quantity: number }>;
+  totalAmount: number;
+}> {}
+
+class PaymentProcessedEvent extends DomainEvent<{
+  orderId: string;
+  paymentId: string;
+  amount: number;
+  paymentMethod: string;
+}> {}
+
+class OrderShippedEvent extends DomainEvent<{
+  orderId: string;
+  trackingNumber: string;
+  carrier: string;
+}> {}
+
+// Use in aggregate
+class Order extends AggregateRoot<string> {
+  placeOrder(customerId: string, items: OrderItem[]) {
+    // Apply domain event
+    this.apply(new OrderPlacedEvent({
+      orderId: this.getId().getValue(),
+      customerId,
+      items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+      totalAmount: this.calculateTotal(items)
+    }));
+  }
+}
+```
+
+## Conclusion
+
+DomainTS Domain Events provide:
+
+- **Type Safety**: Strongly typed event payloads
+- **Rich Metadata**: Comprehensive event context
+- **Immutability**: Safe event records
+- **Flexibility**: Both class-based and factory approaches
+- **Integration Ready**: Works with event buses and stores
+
+This implementation enables event-driven architectures while maintaining clean domain models and supporting advanced patterns like event sourcing and distributed tracing.
+
+# Event Bus in DomainTS - LLM-Optimized Guide
+
+## Document Metadata
+
+- **Pattern Name**: Event Bus
+- **Category**: Infrastructure Pattern
+- **Purpose**: Handle domain event publication and subscription with middleware support
+- **Library**: DomainTS
+- **Language**: TypeScript
+- **Version**: 1.0.0
+
+## Pattern Overview
+
+### What is the Event Bus?
+
+The Event Bus is an infrastructure component that manages publication and subscription of domain events. It provides a decoupled way for different parts of the system to communicate through events.
+
+**Core Concept**:
+```typescript
+// Publish an event
+await eventBus.publish(new OrderPlacedEvent({ orderId: '123' }));
+
+// Subscribe to events
+eventBus.subscribe(OrderPlacedEvent, (event) => {
+  console.log('Order placed:', event.payload.orderId);
+});
+```
+
+## Core Components
+
+### 1. IEventBus Interface
+
+Abstract interface defining the event bus contract:
+
+```typescript
+abstract class IEventBus {
+  abstract publish<T extends IDomainEvent>(event: T): Promise<void>;
+  
+  abstract subscribe<T extends IDomainEvent>(
+    eventType: new (...args: any[]) => T,
+    handler: EventHandlerFn<T>
+  ): void;
+  
+  abstract registerHandler<T extends IDomainEvent>(
+    eventType: new (...args: any[]) => T,
+    handler: IEventHandler<T>
+  ): void;
+  
+  abstract unsubscribe<T extends IDomainEvent>(
+    eventType: new (...args: any[]) => T,
+    handler: EventHandlerFn<T> | IEventHandler<T>
+  ): void;
+}
+```
+
+### 2. Event Handlers
+
+Two types of event handlers are supported:
+
+**Function Handlers**:
+```typescript
+type EventHandlerFn<T extends IDomainEvent> = (event: T) => Promise<void> | void;
+```
+
+**Class-based Handlers**:
+```typescript
+interface IEventHandler<T extends IDomainEvent> {
+  handle(event: T): Promise<void> | void;
+}
+```
+
+**Handler Detection**:
+```typescript
+function isEventHandler(obj: any): obj is IEventHandler<any> {
+  return (
+    obj &&
+    typeof obj === 'object' &&
+    'handle' in obj &&
+    typeof obj.handle === 'function'
+  );
+}
+```
+
+### 3. Event Handler Decorator
+
+Decorator for marking classes or methods as event handlers:
+
+```typescript
+@EventHandler(UserCreatedEvent)
+class UserCreatedHandler implements IEventHandler<UserCreatedEvent> {
+  handle(event: UserCreatedEvent): void {
+    // Handle event
+  }
+}
+```
+
+**EventHandlerOptions**:
+```typescript
+interface EventHandlerOptions {
+  active?: boolean;        // Enable/disable handler conditionally
+  availableFrom?: string;  // Version-based activation
+  priority?: number;       // Execution order (higher = earlier)
+  [key: string]: any;      // Custom metadata
+}
+```
+
+#### Advanced Decorator Usage
+
+```typescript
+// Method-level decorator
+class UserNotifications {
+  @EventHandler(UserCreatedEvent)
+  onUserCreated(event: UserCreatedEvent): void {
+    console.log('User created:', event.payload.userId);
+  }
+  
+  @EventHandler(UserDeletedEvent, { priority: 10 })
+  onUserDeleted(event: UserDeletedEvent): void {
+    console.log('User deleted:', event.payload.userId);
+  }
+}
+
+// Conditional handler activation
+@EventHandler(OrderPlacedEvent, { active: false })
+class DisabledOrderHandler implements IEventHandler<OrderPlacedEvent> {
+  handle(event: OrderPlacedEvent): void {
+    // This handler is disabled and won't be executed
+  }
+}
+
+// Version-based activation
+@EventHandler(NewFeatureEvent, { availableFrom: '1.2.0' })
+class NewFeatureHandler implements IEventHandler<NewFeatureEvent> {
+  handle(event: NewFeatureEvent): void {
+    // Only active in version 1.2.0 and above
+  }
+}
+
+// Priority-based execution
+@EventHandler(OrderProcessedEvent, { priority: 100 })
+class HighPriorityHandler implements IEventHandler<OrderProcessedEvent> {
+  handle(event: OrderProcessedEvent): void {
+    // Executes before handlers with lower priority
+  }
+}
+```
+
+### 4. Metadata and Reflection
+
+The event bus uses metadata for handler registration and configuration:
+
+```typescript
+// Metadata symbols
+export const EVENT_HANDLER_METADATA = Symbol('EVENT_HANDLER_METADATA');
+export const EVENT_HANDLER_OPTIONS = Symbol('EVENT_HANDLER_OPTIONS');
+
+// Metadata structure
+interface EventHandlerMetadata {
+  eventType: new (...args: any[]) => IDomainEvent;
+}
+
+// How decorator adds metadata
+Reflect.defineMetadata(EVENT_HANDLER_METADATA, { eventType }, target);
+Reflect.defineMetadata(EVENT_HANDLER_OPTIONS, options, target);
+
+// How to retrieve metadata
+const metadata = Reflect.getMetadata(EVENT_HANDLER_METADATA, handler);
+const options = Reflect.getMetadata(EVENT_HANDLER_OPTIONS, handler);
+```
+
+### 5. InMemoryEventBus Implementation
+
+The in-memory implementation stores handlers and manages event publishing:
+
+```typescript
+export class InMemoryEventBus implements IEventBus {
+  // Store handlers by event type name
+  private handlers: Map<string, Set<EventHandlerFn<any> | IEventHandler<any>>> = 
+    new Map();
+  
+  // Middleware pipeline for processing events
+  private publishPipeline: (event: IDomainEvent) => Promise<void>;
+  
+  constructor(options: InMemoryEventBusOptions = {}) {
+    this.options = { enableLogging: false, ...options };
+    this.publishPipeline = this.buildPublishPipeline();
+  }
+  
+  // Extract event name from constructor
+  private getEventName<T extends IDomainEvent>(
+    eventType: new (...args: any[]) => T
+  ): string {
+    const prototype = eventType.prototype;
+    if (prototype && 'eventType' in prototype) {
+      return prototype.eventType;
+    }
+    return eventType.name;
+  }
+  
+  // Dynamic middleware addition
+  public addMiddleware(middleware: EventBusMiddleware): void {
+    this.options.middlewares = [
+      ...(this.options.middlewares || []),
+      middleware
+    ];
+    this.publishPipeline = this.buildPublishPipeline();
+  }
+  
+  // Building the middleware pipeline
+  private buildPublishPipeline(): (event: IDomainEvent) => Promise<void> {
+    // Base pipeline - actual event handling
+    const basePipeline = async (event: IDomainEvent): Promise<void> => {
+      const eventName = (event as any).eventType || event.constructor.name;
+      const handlers = this.handlers.get(eventName);
+      
+      if (!handlers || handlers.size === 0) {
+        if (this.options.enableLogging) {
+          console.log(`[EventBus] No handlers for ${eventName}`);
+        }
+        return;
+      }
+      
+      // Execute handlers
+      const promises: Promise<void>[] = [];
+      for (const handler of handlers) {
+        try {
+          let result: void | Promise<void>;
+          
+          if (isEventHandler(handler)) {
+            result = handler.handle(event);
+          } else {
+            result = handler(event);
+          }
+          
+          if (result instanceof Promise) {
+            promises.push(result);
+          }
+        } catch (error) {
+          this.handleError(error as Error, eventName);
+        }
+      }
+      
+      if (promises.length > 0) {
+        await Promise.all(promises);
+      }
+    };
+    
+    // Apply middlewares in reverse order
+    let pipeline = basePipeline;
+    if (this.options.middlewares) {
+      for (let i = this.options.middlewares.length - 1; i >= 0; i--) {
+        pipeline = this.options.middlewares[i](pipeline);
+      }
+    }
+    
+    return pipeline;
+  }
+}
+```
+
+### 6. Event Bus Builder
+
+Fluent API for configuring event buses:
+
+```typescript
+const eventBus = EventBusBuilder.create()
+  .withLogging()
+  .withCorrelation()
+  .withErrorHandler((error, eventType) => {
+    console.error(`Error in ${eventType}:`, error);
+  })
+  .withCustomMiddleware(async (event, next) => {
+    console.log('Before:', event.eventType);
+    await next(event);
+    console.log('After:', event.eventType);
+  })
+  .build();
+```
+
+## Advanced Usage Patterns
+
+### Priority-based Handler Execution
+
+```typescript
+// Handlers execute in priority order (highest first)
+@EventHandler(OrderPlacedEvent, { priority: 100 })
+class CriticalOrderHandler implements IEventHandler<OrderPlacedEvent> {
+  handle(event: OrderPlacedEvent): void {
+    // Executes first - critical business logic
+  }
+}
+
+@EventHandler(OrderPlacedEvent, { priority: 50 })
+class StandardOrderHandler implements IEventHandler<OrderPlacedEvent> {
+  handle(event: OrderPlacedEvent): void {
+    // Executes second - standard processing
+  }
+}
+
+@EventHandler(OrderPlacedEvent, { priority: 10 })
+class LoggingHandler implements IEventHandler<OrderPlacedEvent> {
+  handle(event: OrderPlacedEvent): void {
+    // Executes last - logging/metrics
+  }
+}
+```
+
+### Conditional Handler Activation
+
+```typescript
+// Environment-based activation
+@EventHandler(PaymentProcessedEvent, { 
+  active: process.env.PAYMENT_WEBHOOKS_ENABLED === 'true' 
+})
+class PaymentWebhookHandler implements IEventHandler<PaymentProcessedEvent> {
+  handle(event: PaymentProcessedEvent): void {
+    // Only active when environment variable is set
+  }
+}
+
+// Feature flag based activation
+@EventHandler(NewFeatureEvent, { 
+  active: featureFlags.isEnabled('new-feature') 
+})
+class NewFeatureHandler implements IEventHandler<NewFeatureEvent> {
+  handle(event: NewFeatureEvent): void {
+    // Activated based on feature flag
+  }
+}
+```
+
+### Version-based Handler Management
+
+```typescript
+// Different handlers for different versions
+@EventHandler(UserCreatedEvent, { availableFrom: '1.0.0' })
+class LegacyUserHandler implements IEventHandler<UserCreatedEvent> {
+  handle(event: UserCreatedEvent): void {
+    // Original handler logic
+  }
+}
+
+@EventHandler(UserCreatedEvent, { availableFrom: '2.0.0' })
+class ModernUserHandler implements IEventHandler<UserCreatedEvent> {
+  handle(event: UserCreatedEvent): void {
+    // Updated handler logic for v2.0.0+
+  }
+}
+```
+
+### Complex Middleware Chains
+
+```typescript
+// Authentication middleware
+const authMiddleware: EventBusMiddleware = (next) => async (event) => {
+  const metadata = (event as IExtendedDomainEvent).metadata;
+  if (metadata?.userId) {
+    await validateUserPermissions(metadata.userId);
+  }
+  await next(event);
+};
+
+// Performance monitoring middleware
+const performanceMiddleware: EventBusMiddleware = (next) => async (event) => {
+  const start = performance.now();
+  await next(event);
+  const duration = performance.now() - start;
+  metrics.recordEventProcessingTime(event.eventType, duration);
+};
+
+// Retry middleware
+const retryMiddleware: EventBusMiddleware = (next) => async (event) => {
+  let lastError: Error;
+  for (let i = 0; i < 3; i++) {
+    try {
+      await next(event);
+      return;
+    } catch (error) {
+      lastError = error as Error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+    }
+  }
+  throw lastError!;
+};
+
+// Compose middleware
+const eventBus = EventBusBuilder.create()
+  .withMiddleware(authMiddleware)
+  .withMiddleware(performanceMiddleware)
+  .withMiddleware(retryMiddleware)
+  .build();
+```
+
+## Troubleshooting and Debugging
+
+### Event Flow Tracing
+
+```typescript
+// Debug middleware for tracing event flow
+const debugMiddleware: EventBusMiddleware = (next) => async (event) => {
+  const eventId = (event as IExtendedDomainEvent).metadata?.eventId;
+  console.group(`Event: ${event.eventType} (${eventId})`);
+  console.log('Payload:', event.payload);
+  console.log('Metadata:', (event as IExtendedDomainEvent).metadata);
+  console.time('Processing');
+  
+  try {
+    await next(event);
+    console.log('✓ Success');
+  } catch (error) {
+    console.error('✗ Error:', error);
+    throw error;
+  } finally {
+    console.timeEnd('Processing');
+    console.groupEnd();
+  }
+};
+```
+
+### Handler Registration Inspection
+
+```typescript
+// Extend InMemoryEventBus for debugging
+class DebuggableEventBus extends InMemoryEventBus {
+  getHandlerCount(eventType: new (...args: any[]) => IDomainEvent): number {
+    const eventName = this.getEventName(eventType);
+    return this.handlers.get(eventName)?.size || 0;
+  }
+  
+  listHandlers(): Map<string, number> {
+    const result = new Map<string, number>();
+    this.handlers.forEach((handlers, eventType) => {
+      result.set(eventType, handlers.size);
+    });
+    return result;
+  }
+}
+```
+
+### Common Issues and Solutions
+
+1. **Handler Not Being Called**
+   - Check event type name matches exactly
+   - Verify handler is properly registered
+   - Ensure handler options are correct (active: true)
+
+2. **Events Lost During Processing**
+   - Check error handler configuration
+   - Verify async handlers are properly awaited
+   - Review middleware error handling
+
+3. **Performance Issues**
+   - Avoid blocking operations in handlers
+   - Use async handlers for I/O operations
+   - Consider batching for high-frequency events
+
+4. **Memory Leaks**
+   - Always unsubscribe handlers when no longer needed
+   - Be careful with closure references in handlers
+   - Monitor handler count growth
+
+## Best Practices
+
+1. **Keep Handlers Focused**: Single responsibility per handler
+2. **Use Async Wisely**: Don't block the event loop
+3. **Handle Errors Gracefully**: Always configure error handlers
+4. **Add Correlation**: Track related events across services
+5. **Test with Middleware**: Add testing middleware for verification
+6. **Version Your Handlers**: Plan for handler evolution
+7. **Monitor Performance**: Add metrics middleware
+8. **Document Handler Dependencies**: Clear handler execution order
+
+## Conclusion
+
+DomainTS Event Bus provides:
+
+- **Decoupled Communication**: Loose coupling between components
+- **Middleware Pipeline**: Extensible event processing
+- **Flexible Handlers**: Function and class-based approaches
+- **Rich Metadata**: Decorators with configuration options
+- **Error Resilience**: Configurable error handling
+- **Dynamic Configuration**: Runtime middleware addition
+- **Debugging Support**: Tools for troubleshooting
+
+The implementation supports simple event publishing as well as complex event-driven architectures with features like priority handling, conditional activation, and sophisticated middleware pipelines.
+
+# Unit of Work in DomainTS - LLM-Optimized Guide
+
+## Document Metadata
+
+- **Pattern Name**: Unit of Work
+- **Category**: Domain-Driven Design (DDD) Pattern
+- **Purpose**: Manage transaction boundaries and coordinate domain changes
+- **Library**: DomainTS
+- **Language**: TypeScript
+- **Version**: 1.0.0
+
+## Pattern Overview
+
+### What is Unit of Work?
+
+Unit of Work is a pattern that maintains a list of objects affected by a business transaction and coordinates the writing out of changes and the resolution of concurrency problems. It ensures all operations within a transaction either complete successfully or fail entirely.
+
+**Core Concept**:
+```typescript
+// Start transaction
+await unitOfWork.begin();
+
+try {
+  // Get repositories within transaction context
+  const orderRepo = unitOfWork.getRepository<IOrderRepository>('orders');
+  const inventoryRepo = unitOfWork.getRepository<IInventoryRepository>('inventory');
+  
+  // Make changes
+  await orderRepo.save(order);
+  await inventoryRepo.updateStock(productId, quantity);
+  
+  // Commit transaction and publish events
+  await unitOfWork.commit();
+} catch (error) {
+  // Rollback on error
+  await unitOfWork.rollback();
+  throw error;
+}
+```
+
+## Core Components
+
+### IUnitOfWork Interface
+
+Complete interface for Unit of Work pattern:
+
+```typescript
+interface IUnitOfWork {
+  // Transaction control
+  begin(): Promise<void>;
+  commit(): Promise<void>;
+  rollback(): Promise<void>;
+  
+  // Repository management
+  getRepository<T extends IRepository<any>>(name: string): T;
+  registerRepository<T extends IRepository<any>>(name: string, repository: T): void;
+  
+  // Event coordination
+  getEventBus(): IEventBus;
+}
+```
+
+## Key Features
+
+### 1. Transaction Management
+
+Controls transaction boundaries:
+
+```typescript
+// Begin transaction before operations
+await unitOfWork.begin();
+
+// Commit on success
+await unitOfWork.commit();
+
+// Rollback on failure
+await unitOfWork.rollback();
+```
+
+### 2. Repository Context
+
+Provides repositories within transaction context:
+
+```typescript
+// Register repositories
+unitOfWork.registerRepository('orders', orderRepository);
+unitOfWork.registerRepository('customers', customerRepository);
+
+// Get repositories for transactional operations
+const orderRepo = unitOfWork.getRepository<IOrderRepository>('orders');
+```
+
+### 3. Event Publishing Coordination
+
+Events are published only after successful commit:
+
+```typescript
+// Events collected during transaction
+order.placeOrder(); // Creates domain events
+
+// Events published after commit
+await unitOfWork.commit(); // Events dispatched here
+```
+
+## Usage Patterns
+
+### Basic Transaction Flow
+
+```typescript
+class OrderService {
+  constructor(private readonly unitOfWork: IUnitOfWork) {}
+  
+  async processOrder(orderId: string): Promise<void> {
+    await this.unitOfWork.begin();
+    
+    try {
+      const orderRepo = this.unitOfWork.getRepository<IOrderRepository>('orders');
+      const paymentRepo = this.unitOfWork.getRepository<IPaymentRepository>('payments');
+      
+      const order = await orderRepo.findById(orderId);
+      const payment = await paymentRepo.processPayment(order);
+      
+      order.confirmPayment(payment.id);
+      await orderRepo.save(order);
+      
+      await this.unitOfWork.commit();
+    } catch (error) {
+      await this.unitOfWork.rollback();
+      throw new Error(`Order processing failed: ${error.message}`);
+    }
+  }
+}
+```
+
+### Cross-Aggregate Operations
+
+```typescript
+class TransferService {
+  constructor(private readonly unitOfWork: IUnitOfWork) {}
+  
+  async transferItems(fromOrderId: string, toOrderId: string, itemId: string): Promise<void> {
+    await this.unitOfWork.begin();
+    
+    try {
+      const orderRepo = this.unitOfWork.getRepository<IOrderRepository>('orders');
+      
+      const fromOrder = await orderRepo.findById(fromOrderId);
+      const toOrder = await orderRepo.findById(toOrderId);
+      
+      // Cross-aggregate operation
+      const item = fromOrder.removeItem(itemId);
+      toOrder.addItem(item);
+      
+      // Save both aggregates in same transaction
+      await orderRepo.save(fromOrder);
+      await orderRepo.save(toOrder);
+      
+      await this.unitOfWork.commit();
+    } catch (error) {
+      await this.unitOfWork.rollback();
+      throw error;
+    }
+  }
+}
+```
+
+### Event Coordination
+
+```typescript
+class OrderPlacementService {
+  constructor(private readonly unitOfWork: IUnitOfWork) {}
+  
+  async placeOrder(orderData: OrderData): Promise<void> {
+    await this.unitOfWork.begin();
+    
+    try {
+      const orderRepo = this.unitOfWork.getRepository<IOrderRepository>('orders');
+      const inventoryRepo = this.unitOfWork.getRepository<IInventoryRepository>('inventory');
+      
+      // Create order (generates OrderPlacedEvent)
+      const order = Order.create(orderData);
+      await orderRepo.save(order);
+      
+      // Update inventory
+      for (const item of order.items) {
+        await inventoryRepo.reserveStock(item.productId, item.quantity);
+      }
+      
+      // Events are published only after successful commit
+      await this.unitOfWork.commit();
+      // OrderPlacedEvent is now published to event bus
+      
+    } catch (error) {
+      await this.unitOfWork.rollback();
+      // No events are published on rollback
+      throw error;
+    }
+  }
+}
+```
+
+## Integration with DomainTS
+
+Unit of Work integrates with:
+
+- **Repositories**: Manages repository access within transactions
+- **Aggregates**: Coordinates changes across multiple aggregates
+- **Domain Events**: Ensures events are published after successful commit
+- **Event Bus**: Provides access to event publishing mechanism
+
+### Repository Integration
+
+The base repository class handles event coordination, so concrete repositories don't need to manage the event bus directly:
+
+```typescript
+// Base repository handles event publishing (handled internally by framework)
+abstract class BaseRepository<T extends IAggregateRoot> implements IRepository<T> {
+  // Event bus is managed internally, not exposed to derived classes
+  
+  abstract findById(id: any): Promise<T | null>;
+  abstract save(aggregate: T): Promise<void>;
+}
+
+// Concrete repository focuses on persistence logic only
+class OrderRepository extends BaseRepository<Order> {
+  constructor(private readonly db: DatabaseConnection) {
+    super();
+  }
+  
+  async findById(id: string): Promise<Order | null> {
+    const data = await this.db.orders.findOne({ id });
+    return data ? OrderMapper.toDomain(data) : null;
+  }
+  
+  async save(order: Order): Promise<void> {
+    // Just handle persistence
+    await this.db.orders.save(OrderMapper.toPersistence(order));
+    
+    // Event handling is done by the base class automatically
+    // No need to manually publish events or call commit()
+  }
+}
+```
+
+The Unit of Work coordinates with the base repository class to ensure events are published after successful transaction commit.
+
+## Best Practices
+
+### 1. Keep Transactions Short
+
+```typescript
+// Good - focused transaction
+async updateOrderStatus(orderId: string, status: OrderStatus) {
+  await this.unitOfWork.begin();
+  try {
+    const orderRepo = this.unitOfWork.getRepository<IOrderRepository>('orders');
+    const order = await orderRepo.findById(orderId);
+    order.updateStatus(status);
+    await orderRepo.save(order);
+    await this.unitOfWork.commit();
+  } catch (error) {
+    await this.unitOfWork.rollback();
+    throw error;
+  }
+}
+
+// Bad - transaction doing too much
+async processEntireWorkflow(orderId: string) {
+  await this.unitOfWork.begin();
+  // ... many operations across multiple aggregates
+}
+```
+
+### 2. Handle Errors Properly
+
+```typescript
+async executeTransaction<T>(operation: () => Promise<T>): Promise<T> {
+  await this.unitOfWork.begin();
+  
+  try {
+    const result = await operation();
+    await this.unitOfWork.commit();
+    return result;
+  } catch (error) {
+    await this.unitOfWork.rollback();
+    
+    // Log error details
+    logger.error('Transaction failed', {
+      error: error.message,
+      stack: error.stack
+    });
+    
+    throw error;
+  }
+}
+```
+
+### 3. Don't Nest Transactions
+
+```typescript
+// Bad - nested transactions
+async outerOperation() {
+  await this.unitOfWork.begin();
+  await this.innerOperation(); // This also calls begin()
+  await this.unitOfWork.commit();
+}
+
+// Good - use single transaction
+async combinedOperation() {
+  await this.unitOfWork.begin();
+  // All operations in single transaction
+  await this.unitOfWork.commit();
+}
+```
+
+### 4. Register Repositories Early
+
+```typescript
+// Register all repositories during app initialization
+const unitOfWork = new UnitOfWork(eventBus);
+unitOfWork.registerRepository('orders', orderRepository);
+unitOfWork.registerRepository('customers', customerRepository);
+unitOfWork.registerRepository('payments', paymentRepository);
+
+// Use in services
+class DomainService {
+  constructor(private readonly unitOfWork: IUnitOfWork) {}
+  
+  async operation() {
+    // Repositories already registered
+    const orderRepo = this.unitOfWork.getRepository<IOrderRepository>('orders');
+  }
+}
+```
+
+## Example: E-commerce Transaction
+
+```typescript
+class CheckoutService {
+  constructor(private readonly unitOfWork: IUnitOfWork) {}
+  
+  async checkout(cartId: string, paymentInfo: PaymentInfo): Promise<Order> {
+    await this.unitOfWork.begin();
+    
+    try {
+      // Get repositories
+      const cartRepo = this.unitOfWork.getRepository<ICartRepository>('carts');
+      const orderRepo = this.unitOfWork.getRepository<IOrderRepository>('orders');
+      const inventoryRepo = this.unitOfWork.getRepository<IInventoryRepository>('inventory');
+      const paymentRepo = this.unitOfWork.getRepository<IPaymentRepository>('payments');
+      
+      // Load cart
+      const cart = await cartRepo.findById(cartId);
+      if (!cart) {
+        throw new Error('Cart not found');
+      }
+      
+      // Create order from cart
+      const order = Order.createFromCart(cart);
+      
+      // Reserve inventory
+      for (const item of order.items) {
+        const reserved = await inventoryRepo.reserveStock(
+          item.productId, 
+          item.quantity
+        );
+        if (!reserved) {
+          throw new Error(`Insufficient stock for ${item.productId}`);
+        }
+      }
+      
+      // Process payment
+      const payment = await paymentRepo.processPayment(
+        order.totalAmount,
+        paymentInfo
+      );
+      
+      // Update order with payment
+      order.confirmPayment(payment.id);
+      
+      // Save order
+      await orderRepo.save(order);
+      
+      // Clear cart
+      cart.clear();
+      await cartRepo.save(cart);
+      
+      // Commit transaction - this will:
+      // 1. Persist all changes to database
+      // 2. Publish all domain events
+      await this.unitOfWork.commit();
+      
+      return order;
+      
+    } catch (error) {
+      // Rollback on any error
+      await this.unitOfWork.rollback();
+      
+      // Handle specific errors
+      if (error.message.includes('Insufficient stock')) {
+        throw new InsufficientStockError(error.message);
+      }
+      if (error.message.includes('Payment failed')) {
+        throw new PaymentFailedError(error.message);
+      }
+      
+      throw error;
+    }
+  }
+}
+```
+
+## Common Pitfalls and Solutions
+
+1. **Forgetting to Rollback**
+   - Always use try-catch-finally pattern
+   - Consider creating a transaction helper method
+
+2. **Long-Running Transactions**
+   - Keep transactions focused and short
+   - Move non-transactional operations outside transaction
+
+3. **Event Publishing Issues**
+   - Events should only be published after commit
+   - The framework handles this automatically through base repository
+
+4. **Repository Registration**
+   - Register all repositories before use
+   - Consider dependency injection for setup
+
+## Conclusion
+
+Unit of Work in DomainTS provides:
+
+- **Transaction Management**: Atomic operations across aggregates
+- **Consistency Guarantee**: All-or-nothing persistence
+- **Event Coordination**: Publish events after successful commit
+- **Repository Context**: Transactional access to repositories
+- **Clean Architecture**: Separation of concerns
+
+The pattern ensures data consistency while coordinating complex domain operations involving multiple aggregates and domain events. The framework handles event publication automatically through the base repository class, allowing concrete repositories to focus purely on persistence logic.
