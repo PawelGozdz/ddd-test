@@ -1,3 +1,5 @@
+import { IActor } from '../../../actor';
+
 /**
  * Metadata for domain events
  * Contains additional information about the event context
@@ -27,8 +29,11 @@ export interface IEventMetadata {
   /** Version of the event structure (used for versioning) */
   eventVersion?: number;
 
-  /** ID of the user or system that triggered the event */
-  userId?: string;
+  /** Actor who performed the action that led to this event */
+  actor?: IActor;
+
+  /** Owner of the resource affected by the event */
+  owner?: IActor;
 
   /** Additional application-specific metadata */
   [key: string]: any;

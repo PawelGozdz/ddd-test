@@ -101,6 +101,10 @@ export abstract class DomainToIntegrationTransformer<D = any, I = any>
       // Add routing key (default is event type)
       routingKey: this.getRoutingKey(domainMetadata),
 
+      // Preserve actor and owner information
+      actor: domainMetadata.actor,
+      owner: domainMetadata.owner,
+
       // Add additional metadata
       ...additionalMetadata,
     };

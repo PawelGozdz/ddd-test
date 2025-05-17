@@ -1,3 +1,5 @@
+import { IActor } from '../../../actor';
+
 /**
  * Metadata for integration events
  * Contains additional information relevant for inter-bounded context communication
@@ -26,6 +28,12 @@ export interface IIntegrationEventMetadata {
 
   /** Routing path (e.g. topic/channel) */
   routingKey?: string;
+
+  /** Actor who performed the action that led to this event */
+  actor?: IActor;
+
+  /** Owner of the resource affected by the event */
+  owner?: IActor;
 
   /** Additional application-specific metadata */
   [key: string]: any;

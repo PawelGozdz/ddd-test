@@ -113,3 +113,63 @@ export class EventTypeFilter implements IIntegrationEventFilter {
     return this.eventTypes.includes(event.eventType);
   }
 }
+
+/**
+ * Filter for integration events based on actor type
+ */
+export class ActorTypeFilter implements IIntegrationEventFilter {
+  constructor(private readonly actorTypes: any[]) {}
+
+  public shouldProcess<T = any>(event: IIntegrationEvent<T>): boolean {
+    if (!event.metadata?.actor?.type) {
+      return false;
+    }
+
+    return this.actorTypes.includes(event.metadata.actor.type);
+  }
+}
+
+/**
+ * Filter for integration events based on owner type
+ */
+export class OwnerTypeFilter implements IIntegrationEventFilter {
+  constructor(private readonly ownerTypes: any[]) {}
+
+  public shouldProcess<T = any>(event: IIntegrationEvent<T>): boolean {
+    if (!event.metadata?.owner?.type) {
+      return false;
+    }
+
+    return this.ownerTypes.includes(event.metadata.owner.type);
+  }
+}
+
+/**
+ * Filter for integration events based on actor source
+ */
+export class ActorSourceFilter implements IIntegrationEventFilter {
+  constructor(private readonly sources: string[]) {}
+
+  public shouldProcess<T = any>(event: IIntegrationEvent<T>): boolean {
+    if (!event.metadata?.actor?.source) {
+      return false;
+    }
+
+    return this.sources.includes(event.metadata.actor.source);
+  }
+}
+
+/**
+ * Filter for integration events based on owner source
+ */
+export class OwnerSourceFilter implements IIntegrationEventFilter {
+  constructor(private readonly sources: string[]) {}
+
+  public shouldProcess<T = any>(event: IIntegrationEvent<T>): boolean {
+    if (!event.metadata?.owner?.source) {
+      return false;
+    }
+
+    return this.sources.includes(event.metadata.owner.source);
+  }
+}
