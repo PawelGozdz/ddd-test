@@ -10,8 +10,8 @@ import {
   EntityId,
   IEventDispatcher,
   Specification,
+  IEnhancedEventDispatcher,
 } from '@app/libs';
-import { TestRepo } from './repo';
 interface User {
   id: string;
   email: string;
@@ -95,8 +95,8 @@ class UserRoot extends AggregateRoot<string, UserState> {
 @Controller()
 export class AppController {
   constructor(
-    private readonly dispatcher: IEventDispatcher,
-    private readonly repo: TestRepo,
+    private readonly dispatcher: IEnhancedEventDispatcher,
+    // private readonly repo: TestRepo,
   ) {}
 
   @Get()
@@ -164,7 +164,7 @@ export class AppController {
       address: 123,
     });
 
-    this.repo.save(ag);
+    // this.repo.save(ag);
 
     // this.dispatcher.dispatchEvents(ev);
     return ag;

@@ -1,9 +1,13 @@
-import { IEventDispatcher, AggregateRoot, IEventPersistenceHandler } from '../';
+import {
+  AggregateRoot,
+  IEventPersistenceHandler,
+  IEnhancedEventDispatcher,
+} from '../';
 import { VersionError } from '../domain/domain.errors';
 
 export abstract class IBaseRepository {
   constructor(
-    protected readonly eventDispatcher: IEventDispatcher,
+    protected readonly eventDispatcher: IEnhancedEventDispatcher,
     protected readonly eventPersistenceHandler: IEventPersistenceHandler,
   ) {}
 

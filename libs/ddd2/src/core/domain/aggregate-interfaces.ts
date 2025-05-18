@@ -1,8 +1,4 @@
-import {
-  IExtendedDomainEvent,
-  IEventMetadata,
-  IDomainEvent,
-} from '../events/domain-event-interfaces';
+import { IExtendedDomainEvent, IEventMetadata, IDomainEvent } from '../events';
 import { EntityId } from '../value-objects';
 
 /**
@@ -48,9 +44,6 @@ export interface IAggregateConstructorParams<TId> {
   version?: number;
 }
 
-/**
- * Interface for snapshot functionality
- */
 export interface ISnapshotable<TState = any, TMeta = object> {
   /**
    * Checks if snapshots are enabled for this aggregate
@@ -73,6 +66,12 @@ export interface ISnapshotable<TState = any, TMeta = object> {
    * @throws Error if snapshots are not enabled
    */
   restoreFromSnapshot(snapshot: IAggregateSnapshot<TState, TMeta>): void;
+
+  /**
+   * Saves current state temporarily for audit purposes
+   * This is used by the @captureState decorator
+   */
+  saveSnapshot?(): void;
 
   /**
    * Serializes aggregate state for snapshots

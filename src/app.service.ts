@@ -1,6 +1,6 @@
 // import { EventHandler } from './ddd/handler.decorator';
 import { DomainEvent, EventHandler } from '@app/libs';
-class TestEvent extends DomainEvent {}
+export class TestEvent extends DomainEvent {}
 
 @EventHandler(TestEvent)
 export class AppService {

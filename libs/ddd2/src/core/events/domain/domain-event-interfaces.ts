@@ -35,6 +35,9 @@ export interface IEventMetadata {
   /** Owner of the resource affected by the event */
   owner?: IActor;
 
+  /** Previous state captured for audit purposes */
+  _previousState?: any;
+
   /** Additional application-specific metadata */
   [key: string]: any;
 }

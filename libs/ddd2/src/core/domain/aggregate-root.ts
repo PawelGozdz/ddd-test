@@ -4,6 +4,7 @@ import {
   IExtendedDomainEvent,
   IEventMetadata,
 } from '../events';
+import { IAuditable } from '../events/audit';
 import { EntityId } from '../value-objects';
 import { AggregateError } from './aggregate-errors';
 import {
@@ -20,12 +21,17 @@ import {
  * Supports basic aggregate functionality, snapshots, and versioning
  */
 export class AggregateRoot<TId = string, TState = any, TMeta = object>
-  implements IAggregateRoot<TId>, ISnapshotable<TState, TMeta>, IVersioned
+  implements
+    IAggregateRoot<TId>,
+    ISnapshotable<TState, TMeta>,
+    IVersioned,
+    IAuditable
 {
   private _domainEvents: IExtendedDomainEvent[] = [];
   private _version: number = 0;
   private _initialVersion: number = 0;
   private readonly _id: EntityId<TId>;
+  private _snapshot: any = null;
 
   // Feature flags for optional capabilities
   private _features = {
@@ -119,8 +125,12 @@ export class AggregateRoot<TId = string, TState = any, TMeta = object>
         'Invalid arguments for apply method',
       );
     }
-
     this._incrementVersion();
+
+    if (this._snapshot) {
+      eventMetadata._previousState = this._snapshot;
+      this._snapshot = null;
+    }
 
     // Enrich the event with aggregate metadata
     const enrichedEvent: IExtendedDomainEvent<P> = {
@@ -151,9 +161,23 @@ export class AggregateRoot<TId = string, TState = any, TMeta = object>
       // Default behavior
       const handlerMethod = `on${event.eventType}`;
       if (typeof this[handlerMethod] === 'function') {
+        console.log(this[handlerMethod]);
         this[handlerMethod](event.payload, event.metadata);
       }
     }
+  }
+
+  saveSnapshot(): void {
+    this._snapshot = this.serializeState();
+  }
+
+  /**
+   * Gets previous state and clears the snapshot
+   */
+  getPreviousState(): any | null {
+    const snapshot = this._snapshot;
+    this._snapshot = null;
+    return snapshot;
   }
 
   /**
@@ -305,14 +329,20 @@ export class AggregateRoot<TId = string, TState = any, TMeta = object>
   protected restoreSnapshotMetadata?(metadata: TMeta): void;
 
   /**
-   * Serializes aggregate state for snapshots - must be implemented in derived classes
-   * when snapshots are enabled
+   * Serializes aggregate state for snapshots
+   * Fixed return type implementation
    */
   serializeState(): TState {
-    throw AggregateError.methodNotImplemented(
-      'serializeState',
-      this.constructor.name,
-    );
+    // Create a deep clone
+    const clone = structuredClone(this) as any;
+
+    // Remove internal properties that shouldn't be part of the snapshot
+    delete clone._domainEvents;
+    delete clone._snapshot;
+    delete clone._features;
+    delete clone._eventUpcasters;
+
+    return clone as TState;
   }
 
   /**

@@ -1,21 +1,53 @@
-// enhanced-event-dispatcher.ts
 import { AggregateRoot } from '../domain';
 import { IDomainEvent } from './domain';
 import { IEventBus } from './event-bus';
+import { EventBusRegistry } from './event-bus-registry';
 import {
-  IEnhancedEventDispatcher,
   EventMiddleware,
+  IEnhancedEventDispatcher,
 } from './event-dispatcher.interface';
+import { IEventProcessor } from './event-processor';
 
 /**
- * Enhanced implementation of event dispatcher with middleware support
+ * Options for configuring the universal event dispatcher
  */
-// TODO: naprawić testy
-// TODO: zaktualizować HOW-TO
-export class EnhancedEventDispatcher implements IEnhancedEventDispatcher {
-  private middlewares: EventMiddleware[] = [];
+export interface UniversalEventDispatcherOptions {
+  /** Domain event bus (required) */
+  domainEventBus: IEventBus<IDomainEvent>;
+}
 
-  constructor(private readonly eventBus: IEventBus) {}
+/**
+ * Universal event dispatcher with middleware and processor support
+ * Coordinates the dispatching of events across different buses
+ */
+export class UniversalEventDispatcher implements IEnhancedEventDispatcher {
+  private middlewares: EventMiddleware[] = [];
+  private processors: IEventProcessor[] = [];
+  private registry: EventBusRegistry;
+
+  /**
+   * Create a new universal event dispatcher
+   */
+  constructor(options?: UniversalEventDispatcherOptions) {
+    this.registry = new EventBusRegistry();
+    // this.registry.register('domain', options.domainEventBus);
+  }
+
+  /**
+   * Register an additional event bus
+   */
+  registerEventBus<TEvent>(type: string, bus: IEventBus<TEvent>): this {
+    this.registry.register(type, bus);
+    return this;
+  }
+
+  /**
+   * Register an event processor
+   */
+  registerProcessor(processor: IEventProcessor): this {
+    this.processors.push(processor);
+    return this;
+  }
 
   /**
    * Add middleware to the event pipeline
@@ -26,13 +58,19 @@ export class EnhancedEventDispatcher implements IEnhancedEventDispatcher {
   }
 
   /**
+   * Get the event bus registry
+   */
+  getRegistry(): EventBusRegistry {
+    return this.registry;
+  }
+
+  /**
    * Dispatch all events from an aggregate and clear them
    */
   async dispatchEventsForAggregate(
     aggregate: AggregateRoot<any>,
   ): Promise<void> {
     const events = aggregate.getDomainEvents();
-
     if (events.length === 0) return;
 
     // Dispatch all events
@@ -46,35 +84,49 @@ export class EnhancedEventDispatcher implements IEnhancedEventDispatcher {
    * Dispatch a single event
    */
   async dispatchEvent(event: IDomainEvent): Promise<void> {
+    // Build and execute the pipeline
     const pipeline = this.buildPipeline();
     await pipeline(event);
+
+    // Process the event through all processors
+    await this.processEvent(event);
   }
 
   /**
    * Dispatch multiple events
    */
   async dispatchEvents(...events: IDomainEvent[]): Promise<void> {
-    const pipeline = this.buildPipeline();
-
     for (const event of events) {
-      await pipeline(event);
+      await this.dispatchEvent(event);
     }
   }
 
   /**
-   * Build middleware pipeline
+   * Process an event through all registered processors
+   */
+  private async processEvent(event: IDomainEvent): Promise<void> {
+    // Process through all processors
+    for (const processor of this.processors) {
+      await processor.process(event, this.registry);
+    }
+  }
+
+  /**
+   * Build the middleware pipeline for event processing
    */
   private buildPipeline(): (event: IDomainEvent) => Promise<void> {
-    // Base function that publishes to event bus
+    // Base function that publishes to domain event bus
     let pipeline = async (event: IDomainEvent): Promise<void> => {
-      await this.eventBus.publish(event);
+      const domainBus = this.registry.get<IDomainEvent>('domain');
+      if (domainBus) {
+        await domainBus.publish(event);
+      }
     };
 
     // Apply middleware in reverse order (last added, first executed)
     for (let i = this.middlewares.length - 1; i >= 0; i--) {
       const middleware = this.middlewares[i];
       const nextPipeline = pipeline;
-
       pipeline = async (event: IDomainEvent): Promise<void> => {
         await middleware(event, nextPipeline);
       };
@@ -82,53 +134,4 @@ export class EnhancedEventDispatcher implements IEnhancedEventDispatcher {
 
     return pipeline;
   }
-}
-
-// Common middleware implementations
-export const eventDispatcherLoggingMiddleware: EventMiddleware = async (
-  event,
-  next,
-) => {
-  console.log(`Dispatching event: ${event.eventType}`);
-  const start = Date.now();
-
-  try {
-    await next(event);
-    console.log(
-      `Event ${event.eventType} dispatched in ${Date.now() - start}ms`,
-    );
-  } catch (error) {
-    console.error(`Error dispatching event ${event.eventType}:`, error);
-    throw error;
-  }
-};
-
-export const eventDispatcherCorrelationMiddleware: EventMiddleware = async (
-  event,
-  next,
-) => {
-  // Ensure all events have correlationId
-  if (!event['metadata']?.correlationId) {
-    event['metadata'] = {
-      ...event['metadata'],
-      correlationId: event['metadata']?.eventId || crypto.randomUUID(),
-    };
-  }
-
-  await next(event);
-};
-
-/**
- * Factory function to create an enhanced event dispatcher
- */
-export function createEnhancedEventDispatcher(
-  eventBus: IEventBus,
-  middlewares: EventMiddleware[] = [],
-): IEnhancedEventDispatcher {
-  const dispatcher = new EnhancedEventDispatcher(eventBus);
-
-  // Apply all middleware
-  middlewares.forEach((middleware) => dispatcher.use(middleware));
-
-  return dispatcher;
 }

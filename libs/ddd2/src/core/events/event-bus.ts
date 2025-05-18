@@ -1,59 +1,66 @@
+import { IAuditEvent } from './audit';
 import { IDomainEvent } from './domain';
-import { EventHandlerFn, IEventHandler } from './event-handler-interface';
+import { IIntegrationEvent } from './integration';
 
 /**
  * Interface for event buses
  * Defines the core contract for event publication and subscription
+ * Generic type TEvent allows handling different event types (domain, integration, audit)
  */
-export abstract class IEventBus {
+export abstract class IEventBus<TEvent = IDomainEvent> {
   /**
    * Publish an event to all subscribed handlers
    *
    * @param event - The event to publish
    */
-  abstract publish<T extends IDomainEvent>(event: T): Promise<void>;
+  abstract publish(event: TEvent): Promise<void>;
 
   /**
    * Subscribe a function to handle events of a specific type
    *
-   * @param eventType - The event type constructor
+   * @param eventType - The event type constructor or string identifier
    * @param handler - The handler function
    */
-  abstract subscribe<T extends IDomainEvent>(
-    eventType: new (...args: any[]) => T,
-    handler: EventHandlerFn<T>,
+  abstract subscribe<T extends TEvent>(
+    eventType: string | (new (...args: any[]) => T),
+    handler: (event: T) => Promise<void> | void,
   ): void;
 
   /**
    * Register a class-based handler for events of a specific type
    *
-   * @param eventType - The event type constructor
+   * @param eventType - The event type constructor or string identifier
    * @param handler - The event handler object
    */
-  abstract registerHandler<T extends IDomainEvent>(
-    eventType: new (...args: any[]) => T,
-    handler: IEventHandler<T>,
+  abstract registerHandler<T extends TEvent>(
+    eventType: string | (new (...args: any[]) => T),
+    handler: {
+      handle(event: T): Promise<void> | void;
+    },
   ): void;
 
   /**
    * Unsubscribe a handler from events of a specific type
    *
-   * @param eventType - The event type constructor
+   * @param eventType - The event type constructor or string identifier
    * @param handler - The handler to unsubscribe
    */
-  abstract unsubscribe<T extends IDomainEvent>(
-    eventType: new (...args: any[]) => T,
-    handler: EventHandlerFn<T> | IEventHandler<T>,
+  abstract unsubscribe<T extends TEvent>(
+    eventType: string | (new (...args: any[]) => T),
+    handler:
+      | ((event: T) => Promise<void> | void)
+      | {
+          handle(event: T): Promise<void> | void;
+        },
   ): void;
 }
 
 /**
- * Middleware function type for event buses
- * Enables creation of processing pipelines for events
+ * Common type aliases for clarity
  */
-export type EventBusMiddleware = (
-  next: (event: IDomainEvent) => Promise<void>,
-) => (event: IDomainEvent) => Promise<void>;
+export type IDomainEventBus = IEventBus<IDomainEvent>;
+export type IIntegrationEventBus = IEventBus<IIntegrationEvent>;
+export type IAuditEventBus = IEventBus<IAuditEvent>;
 
 /**
  * Symbol for custom middleware

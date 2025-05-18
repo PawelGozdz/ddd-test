@@ -47,10 +47,7 @@ export class IntegrationEventTransformerRegistry {
   public transform<D = any, I = any>(
     domainEvent: IExtendedDomainEvent<D>,
   ): IIntegrationEvent<I> | undefined {
-    const transformer = this.find<
-      IExtendedDomainEvent<D>,
-      IIntegrationEvent<I>
-    >(domainEvent.eventType);
+    const transformer = this.find(domainEvent.eventType);
 
     if (!transformer) {
       return undefined;

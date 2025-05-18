@@ -6,6 +6,15 @@ import {
 } from './integration-event-interfaces';
 import { createIntegrationEvent } from './integration-event.utils';
 
+export interface IContextRouter {
+  /**
+   * Determines target contexts for a domain event
+   * @param event Domain event
+   * @returns Array of target context names
+   */
+  determineTargetContexts(event: IExtendedDomainEvent): string[];
+}
+
 /**
  * Base implementation of a domain to integration event transformer
  * Provides core functionality for transforming domain events to integration events
@@ -14,7 +23,7 @@ export abstract class DomainToIntegrationTransformer<D = any, I = any>
   implements
     IDomainToIntegrationEventTransformer<
       IExtendedDomainEvent<D>,
-      IIntegrationEvent<I>
+      Partial<IIntegrationEventMetadata>
     >
 {
   /**

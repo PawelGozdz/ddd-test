@@ -1,166 +1,190 @@
-// app/infrastructure/nestjs/ddd.module.ts
-import {
-  EventBusBuilder,
-  EventBusMiddleware,
-  EventDispatcher,
-  IEventBus,
-  IEventDispatcher,
-} from '@app/libs';
-import { Module, DynamicModule, Provider, Global } from '@nestjs/common';
-import { DiscoveryModule } from '@nestjs/core';
-import {
-  DDD_MODULE_OPTIONS,
-  EventHandlerExplorer,
-} from './event-handler-explorer.service';
+// // app/infrastructure/nestjs/ddd.module.ts
 
-/**
- * Opcje modułu DDD
- */
-export interface DddModuleOptions {
-  /**
-   * Konfiguracja EventBus'a
-   */
-  eventBus?: {
-    /** Włącz logowanie */
-    enableLogging?: boolean;
-    /** Włącz śledzenie korelacji */
-    enableCorrelation?: boolean;
-    /** Własny handler błędów */
-    errorHandler?: (error: Error, eventType: string) => void;
-    /** Lista middleware */
-    middlewares?: EventBusMiddleware[];
-  };
+// import { Module, DynamicModule, Provider, Global } from '@nestjs/common';
+// import { DiscoveryModule } from '@nestjs/core';
+// import {
+//   DDD_MODULE_OPTIONS,
+//   EventHandlerExplorer,
+// } from './event-handler-explorer.service';
+// import { EventBusMiddleware } from '@/src/core/events/base-event-bus';
+// import {
+//   EventBusBuilder,
+//   IEnhancedEventDispatcher,
+//   IEventBus,
+//   InMemoryEventBus,
+//   IntegrationEventTransformerRegistry,
+//   TestTransformer,
+//   UniversalEventDispatcher,
+// } from '@/src';
+// import { createUniversalEventDispatcher } from '@/src/core/events/event-dispatcher-factory';
+// import { TestEvent } from 'src/app.service';
 
-  /**
-   * Konfiguracja odkrywania handlerów
-   */
-  discovery?: {
-    /** Włącz automatyczne odkrywanie handlerów (domyślnie true) */
-    enabled?: boolean;
-    /** Czy odkrywanie ma być wykonane na OnModuleInit */
-    exploreOnInit?: boolean;
-    /** Włącz aktywację handlerów na podstawie metadanych */
-    enableActivation?: boolean;
-    /** Domyślny stan aktywacji (domyślnie true) */
-    defaultActive?: boolean;
-  };
+// /**
+//  * Opcje modułu DDD
+//  */
+// export interface DddModuleOptions {
+//   /**
+//    * Konfiguracja EventBus'a
+//    */
+//   eventBus?: {
+//     /** Włącz logowanie */
+//     enableLogging?: boolean;
+//     /** Włącz śledzenie korelacji */
+//     enableCorrelation?: boolean;
+//     /** Własny handler błędów */
+//     errorHandler?: (error: Error, eventType: string) => void;
+//     /** Lista middleware */
+//     middlewares?: EventBusMiddleware[];
+//   };
 
-  /**
-   * Konfiguracja repozytorium
-   */
-  repositories?: Provider[];
+//   /**
+//    * Konfiguracja odkrywania handlerów
+//    */
+//   discovery?: {
+//     /** Włącz automatyczne odkrywanie handlerów (domyślnie true) */
+//     enabled?: boolean;
+//     /** Czy odkrywanie ma być wykonane na OnModuleInit */
+//     exploreOnInit?: boolean;
+//     /** Włącz aktywację handlerów na podstawie metadanych */
+//     enableActivation?: boolean;
+//     /** Domyślny stan aktywacji (domyślnie true) */
+//     defaultActive?: boolean;
+//   };
 
-  /**
-   * Dodatkowi providenci
-   */
-  providers?: Provider[];
-}
+//   /**
+//    * Konfiguracja repozytorium
+//    */
+//   repositories?: Provider[];
 
-/**
- * Główny moduł DDD dla integracji z NestJS
- */
-@Global()
-@Module({
-  imports: [DiscoveryModule],
-})
-export class DddModule {
-  /**
-   * Konfiguruje moduł DDD
-   */
-  static forRoot(options: DddModuleOptions = {}): DynamicModule {
-    // Domyślne opcje
-    const defaultOptions: DddModuleOptions = {
-      eventBus: {
-        enableLogging: false,
-        enableCorrelation: true,
-        middlewares: [],
-      },
-      discovery: {
-        enabled: true,
-        exploreOnInit: true,
-        enableActivation: true,
-        defaultActive: true,
-      },
-      repositories: [],
-      providers: [],
-    };
+//   /**
+//    * Dodatkowi providenci
+//    */
+//   providers?: Provider[];
+// }
 
-    // Połącz opcje z domyślnymi
-    const mergedOptions: DddModuleOptions = {
-      eventBus: { ...defaultOptions.eventBus, ...options.eventBus },
-      discovery: { ...defaultOptions.discovery, ...options.discovery },
-      repositories: options.repositories || [],
-      providers: options.providers || [],
-    };
+// /**
+//  * Główny moduł DDD dla integracji z NestJS
+//  */
+// @Global()
+// @Module({
+//   imports: [DiscoveryModule],
+// })
+// export class DddModule {
+//   /**
+//    * Konfiguruje moduł DDD
+//    */
+//   static forRoot(options: DddModuleOptions = {}): DynamicModule {
+//     // Domyślne opcje
+//     const defaultOptions: DddModuleOptions = {
+//       eventBus: {
+//         enableLogging: false,
+//         enableCorrelation: true,
+//         middlewares: [],
+//       },
+//       discovery: {
+//         enabled: true,
+//         exploreOnInit: true,
+//         enableActivation: true,
+//         defaultActive: true,
+//       },
+//       repositories: [],
+//       providers: [],
+//     };
 
-    // Przygotuj providery
-    const providers: Provider[] = [
-      // Provider dla EventBus
-      {
-        provide: IEventBus,
-        useFactory: () => {
-          let builder = EventBusBuilder.create();
+//     // Połącz opcje z domyślnymi
+//     const mergedOptions: DddModuleOptions = {
+//       eventBus: { ...defaultOptions.eventBus, ...options.eventBus },
+//       discovery: { ...defaultOptions.discovery, ...options.discovery },
+//       repositories: options.repositories || [],
+//       providers: options.providers || [],
+//     };
 
-          // Konfiguracja na podstawie opcji
-          if (mergedOptions.eventBus?.enableLogging) {
-            builder = builder.withLogging();
-          }
+//     // Przygotuj providery
+//     const providers: Provider[] = [
+//       // Provider dla EventBus
+//       // {
+//       //   provide: InMemoryEventBus,
+//       //   useFactory: () => {
+//       //     let builder = EventBusBuilder.create();
 
-          if (mergedOptions.eventBus?.enableCorrelation) {
-            builder = builder.withCorrelation();
-          }
+//       //     // Konfiguracja na podstawie opcji
+//       //     if (mergedOptions.eventBus?.enableLogging) {
+//       //       builder = builder.withLogging();
+//       //     }
 
-          if (mergedOptions.eventBus?.errorHandler) {
-            builder = builder.withErrorHandler(
-              mergedOptions.eventBus.errorHandler,
-            );
-          }
+//       //     if (mergedOptions.eventBus?.enableCorrelation) {
+//       //       builder = builder.withCorrelation();
+//       //     }
 
-          // Dodaj wszystkie middleware
-          for (const middleware of mergedOptions.eventBus?.middlewares || []) {
-            builder = builder.withMiddleware(middleware);
-          }
+//       //     if (mergedOptions.eventBus?.errorHandler) {
+//       //       builder = builder.withErrorHandler(
+//       //         mergedOptions.eventBus.errorHandler,
+//       //       );
+//       //     }
 
-          return builder.build();
-        },
-      },
+//       //     // Dodaj wszystkie middleware
+//       //     for (const middleware of mergedOptions.eventBus?.middlewares || []) {
+//       //       builder = builder.withMiddleware(middleware);
+//       //     }
 
-      // Provider dla EventDispatcher
-      {
-        provide: IEventDispatcher,
-        useFactory: (eventBus: IEventBus) => {
-          return new EventDispatcher(eventBus);
-        },
-        inject: [IEventBus],
-      },
+//       //     return builder.build();
+//       //   },
+//       // },
+//       // {
+//       //   privide: IntegrationEventTransformerRegistry,
+//       //   useVactory: () => {
+//       //     const x = IntegrationEventTransformerRegistry.
+//       //     return ;
+//       //   }
+//       // }
 
-      // Provider dla opcji modułu - użyteczne przy wstrzykiwaniu
-      {
-        provide: DDD_MODULE_OPTIONS,
-        useValue: mergedOptions,
-      },
-    ];
+//       // Provider dla EventDispatcher
+//       {
+//         provide: IEnhancedEventDispatcher,
+//         useFactory: (eventBus: IEventBus) => {
+//           const buildDispatcher = createUniversalEventDispatcher({
+//             domainEventBus: eventBus,
+//             middlewares: [],
+//             // transformerRegistry:
+//             //   new IntegrationEventTransformerRegistry().register(
+//             //     TestEvent.name,
+//             //     new TestTransformer({}),
+//             //   )
+//             // integrationEventBus:
+//           });
 
-    // Dodaj explorer handlerów jeśli odkrywanie jest włączone
-    if (mergedOptions.discovery?.enabled) {
-      providers.push(EventHandlerExplorer);
-    }
+//           return buildDispatcher;
+//         },
+//         inject: [IEventBus],
+//       },
 
-    // Dodaj repozytoria i pozostałe providery
-    providers.push(
-      ...(mergedOptions.repositories || []),
-      ...(mergedOptions.providers || []),
-    );
+//       // Provider dla opcji modułu - użyteczne przy wstrzykiwaniu
+//       {
+//         provide: DDD_MODULE_OPTIONS,
+//         useValue: mergedOptions,
+//       },
+//     ];
 
-    // Przygotuj eksporty
-    const exports = [IEventBus, IEventDispatcher];
+//     // Dodaj explorer handlerów jeśli odkrywanie jest włączone
+//     if (mergedOptions.discovery?.enabled) {
+//       providers.push(EventHandlerExplorer);
+//     }
 
-    return {
-      module: DddModule,
-      global: true, // Moduł globalny - dostępny wszędzie
-      imports: [DiscoveryModule],
-      providers,
-      exports,
-    };
-  }
-}
+//     // Dodaj repozytoria i pozostałe providery
+//     providers.push(
+//       ...(mergedOptions.repositories || []),
+//       ...(mergedOptions.providers || []),
+//     );
+
+//     // Przygotuj eksporty
+//     const exports = [IEventBus, IEnhancedEventDispatcher];
+
+//     return {
+//       module: DddModule,
+//       global: true, // Moduł globalny - dostępny wszędzie
+//       imports: [DiscoveryModule],
+//       providers,
+//       exports,
+//     };
+//   }
+// }

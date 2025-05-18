@@ -8,6 +8,7 @@ import { IEventPersistenceHandler } from './event-persistence-handler.interface'
  */
 // TODO: dorobić testy
 // TODO: zaktualizować HOW-TO
+// TODO: zogbaczyć co można tutaj zrobić i czy jakoś się pozbyć tego mechanizmu
 
 export abstract class GenericEventPersistenceHandler
   implements IEventPersistenceHandler
