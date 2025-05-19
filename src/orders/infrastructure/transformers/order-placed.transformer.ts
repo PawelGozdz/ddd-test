@@ -1,5 +1,34 @@
+import { ContextRouter } from '@/src/core/events/integration/context-router';
 import { OrderPlacedPayload } from '../../domain/events/order-placed.event';
-import { DomainToIntegrationTransformer } from '@/src';
+import {
+  CompositeSpecification,
+  DomainToIntegrationTransformer,
+  IExtendedDomainEvent,
+  ISpecification,
+} from '@/src';
+
+class ValueSpecification<T>
+  extends CompositeSpecification<T>
+  implements ISpecification<T>
+{
+  constructor(
+    private readonly path: string,
+    private readonly predicate: (value: any) => boolean,
+  ) {
+    super();
+  }
+
+  isSatisfiedBy(candidate: T): boolean {
+    const value = this.getValueByPath(candidate, this.path);
+    return this.predicate(value);
+  }
+
+  private getValueByPath(obj: any, path: string): any {
+    return path.split('.').reduce((prev, curr) => {
+      return prev && prev[curr] !== undefined ? prev[curr] : undefined;
+    }, obj);
+  }
+}
 
 // Rozszerzony payload dla zdarzenia integracyjnego
 export interface OrderPlacedIntegrationPayload {
@@ -19,7 +48,24 @@ export class OrderPlacedTransformer extends DomainToIntegrationTransformer<
 > {
   constructor() {
     // Definicja kontekstów źródłowego i docelowego
-    super('OrderManagement', 'ShippingService');
+    const highValueOrderSpec = new ValueSpecification<IExtendedDomainEvent>(
+      'payload.totalAmount',
+      (value) => value > 10,
+    );
+    const orderAggregateSpec = new ValueSpecification<IExtendedDomainEvent>(
+      'metadata.aggregateType',
+      (value) => value === 'Order',
+    );
+
+    super(
+      'OrderManagement',
+      new ContextRouter().sendEventsMatchingSpecificationTo(
+        highValueOrderSpec.and(orderAggregateSpec),
+        'invoice-service',
+        'analytics-service',
+        'users-service',
+      ),
+    );
   }
 
   protected transformPayload(

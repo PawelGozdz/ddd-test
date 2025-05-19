@@ -1,19 +1,11 @@
 import { IExtendedDomainEvent, IEventMetadata } from '../domain';
+import { IContextRouter } from './context-router';
 import {
   IIntegrationEvent,
   IIntegrationEventMetadata,
   IDomainToIntegrationEventTransformer,
 } from './integration-event-interfaces';
 import { createIntegrationEvent } from './integration-event.utils';
-
-export interface IContextRouter {
-  /**
-   * Determines target contexts for a domain event
-   * @param event Domain event
-   * @returns Array of target context names
-   */
-  determineTargetContexts(event: IExtendedDomainEvent): string[];
-}
 
 /**
  * Base implementation of a domain to integration event transformer
@@ -34,16 +26,42 @@ export abstract class DomainToIntegrationTransformer<D = any, I = any>
   /**
    * Target bounded context (optional)
    */
-  protected readonly targetContext?: string;
+  private readonly contextRouter?: IContextRouter;
 
   /**
    * Creates a new transformer
    * @param sourceContext Name of the source bounded context
    * @param targetContext Optional name of the target bounded context
    */
-  constructor(sourceContext: string, targetContext?: string) {
+  constructor(sourceContext: string, contextRouter?: IContextRouter) {
     this.sourceContext = sourceContext;
-    this.targetContext = targetContext;
+    this.contextRouter = contextRouter;
+  }
+
+  public transformToMultipleTargets(
+    domainEvent: IExtendedDomainEvent<D>,
+    additionalMetadata?: Partial<IIntegrationEventMetadata>,
+  ): IIntegrationEvent<I>[] {
+    if (!this.contextRouter) {
+      // Bez routera zwracamy pojedynczy event bez kontekstu docelowego
+      return [this.transform(domainEvent, additionalMetadata)];
+    }
+
+    const targetContexts =
+      this.contextRouter.determineTargetContexts(domainEvent);
+
+    // Jeśli brak kontekstów docelowych, zwracamy pojedynczy event
+    if (targetContexts.length === 0) {
+      return [];
+    }
+
+    // Tworzymy event dla każdego kontekstu docelowego
+    return targetContexts.map((targetContext) =>
+      this.transform(domainEvent, {
+        ...additionalMetadata,
+        targetContext,
+      }),
+    );
   }
 
   /**
@@ -102,7 +120,7 @@ export abstract class DomainToIntegrationTransformer<D = any, I = any>
 
       // Add source and target context
       sourceContext: this.sourceContext,
-      targetContext: this.targetContext,
+      contextRouter: this.contextRouter,
 
       // Add schema version (default 1)
       schemaVersion: 1,

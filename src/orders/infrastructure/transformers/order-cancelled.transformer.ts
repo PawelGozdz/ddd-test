@@ -18,7 +18,7 @@ export class OrderCancelledTransformer extends DomainToIntegrationTransformer<
 > {
   constructor() {
     // Definicja kontekstów źródłowego i docelowego
-    super('OrderManagement', 'InventoryService');
+    super('OrderManagement');
   }
 
   protected transformPayload(

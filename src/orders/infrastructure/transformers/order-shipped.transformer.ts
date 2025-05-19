@@ -19,7 +19,7 @@ export class OrderShippedTransformer extends DomainToIntegrationTransformer<
 > {
   constructor() {
     // Definicja kontekstów źródłowego i docelowego
-    super('OrderManagement', 'CustomerNotificationService');
+    super('OrderManagement');
   }
 
   protected transformPayload(

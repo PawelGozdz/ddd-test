@@ -28,8 +28,12 @@ export class IntegrationEventProcessor implements IEventProcessor {
     const transformer = this.transformerRegistry.find(event.eventType);
     if (!transformer) return;
 
-    // Transform and publish integration event
-    const integrationEvent = transformer.transform(event);
-    await integrationBus.publish(integrationEvent);
+    // Użycie transformToMultipleTargets zamiast transform
+    const integrationEvents = transformer.transformToMultipleTargets(event);
+
+    // Publikacja wszystkich wygenerowanych eventów
+    for (const integrationEvent of integrationEvents) {
+      await integrationBus.publish(integrationEvent);
+    }
   }
 }

@@ -21,10 +21,11 @@ import { ShipOrderHandler } from './application/commands/handlers/ship-order.han
 import { CancelOrderHandler } from './application/commands/handlers/cancel-order.handler';
 import {
   IEnhancedEventDispatcher,
-  IEventBus,
   IEventPersistenceHandler,
+  IIntegrationEvent,
   InMemoryDomainEventBus,
   InMemoryIntegrationEventBus,
+  IntegrationEventProcessor,
   IntegrationEventTransformerRegistry,
   UniversalEventDispatcher,
 } from '@/src';
@@ -34,7 +35,6 @@ import {
 } from '@/src/core/events/event-dispatcher-factory';
 import { OrdersController } from './orders.controller';
 import { OrderEventHandler } from './infrastructure/repositories/order-persistence-handler';
-import { IntegrationEventProcessor } from '@/src/core/events/integration/integration-processor';
 
 @Module({
   controllers: [OrdersController],
@@ -93,12 +93,12 @@ import { IntegrationEventProcessor } from '@/src/core/events/integration/integra
         transformerRegistry: IntegrationEventTransformerRegistry,
       ) => {
         const dispatcher = new UniversalEventDispatcher()
-          .registerEventBus(
-            'domain',
-            new InMemoryDomainEventBus({
-              enableLogging: true,
-            }),
-          )
+          // .registerEventBus(
+          //   'domain',
+          //   new InMemoryDomainEventBus({
+          //     enableLogging: true,
+          //   }),
+          // )
           .registerEventBus(
             'integration',
             new InMemoryIntegrationEventBus({
@@ -119,7 +119,6 @@ import { IntegrationEventProcessor } from '@/src/core/events/integration/integra
 export class OrdersModule {
   constructor(
     private readonly dispatcher: IEnhancedEventDispatcher,
-    // private readonly integrationEventBus: InMemoryIntegrationEventBus,
     private readonly orderPlacedHandler: OrderPlacedHandler,
     private readonly orderShippedHandler: OrderShippedHandler,
     private readonly orderCancelledHandler: OrderCancelledHandler,
@@ -139,9 +138,11 @@ export class OrdersModule {
     );
 
     // Rejestracja handlerów zdarzeń integracyjnych
-    integrationEventBus?.registerHandler(
+    (integrationEventBus as InMemoryIntegrationEventBus)?.subscribe(
       'OrderSubmitted',
-      this.orderPaymentProcessedHandler,
+      (event: IIntegrationEvent) =>
+        this.orderPaymentProcessedHandler.handle(event),
+      'users-service',
     );
   }
 }

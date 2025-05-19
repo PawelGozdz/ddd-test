@@ -21,6 +21,6 @@ export class OrderPaymentProcessedHandler
   async handle(
     event: IIntegrationEvent<OrderPaymentProcessedPayload>,
   ): Promise<void> {
-    this.logger.log('Integration event', event);
+    this.logger.log('Integration event**');
   }
 }

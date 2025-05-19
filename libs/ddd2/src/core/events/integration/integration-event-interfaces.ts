@@ -60,25 +60,22 @@ export interface IIntegrationEvent<P = any> {
  */
 export interface IDomainToIntegrationEventTransformer<D = any, I = any> {
   /**
-   * Transforms a domain event to an integration event
-   * @param domainEvent Domain event to transform
-   * @param additionalMetadata Optional additional metadata
+   * Transformuje wydarzenie domenowe na wydarzenie integracyjne
+   * @param domainEvent Wydarzenie domenowe do transformacji
+   * @param additionalMetadata Opcjonalne dodatkowe metadane
    */
   transform(
     domainEvent: D,
     additionalMetadata?: Partial<IIntegrationEventMetadata>,
   ): IIntegrationEvent<I>;
-}
 
-/**
- * Interface for integration event filter
- * Determines if an event should be processed or not
- */
-export interface IIntegrationEventFilter {
   /**
-   * Checks if an event should be processed
-   * @param event Integration event to check
-   * @returns True if event should be processed, false otherwise
+   * Transformuje wydarzenie domenowe na wydarzenia integracyjne dla wielu kontekstów
+   * @param domainEvent Wydarzenie domenowe do transformacji
+   * @param additionalMetadata Opcjonalne dodatkowe metadane
    */
-  shouldProcess<T = any>(event: IIntegrationEvent<T>): boolean;
+  transformToMultipleTargets(
+    domainEvent: D,
+    additionalMetadata?: Partial<IIntegrationEventMetadata>,
+  ): IIntegrationEvent<I>[];
 }

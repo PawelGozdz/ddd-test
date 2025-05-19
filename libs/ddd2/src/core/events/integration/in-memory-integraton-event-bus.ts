@@ -1,6 +1,16 @@
 import { BaseEventBus, BaseEventBusOptions } from '../base-event-bus';
-import { IIntegrationEventBus } from '../event-bus';
+import { IEventBus, IIntegrationEventBus } from '../event-bus';
+import { IEventHandler, isEventHandler } from '../event-handler-interface';
 import { IIntegrationEvent } from './integration-event-interfaces';
+
+export interface ContextAwareEventBus<TEvent = any> extends IEventBus<TEvent> {
+  // Dodatkowa metoda do subskrypcji z określonym kontekstem
+  subscribeWithContext(
+    eventType: string | (new (...args: any[]) => TEvent),
+    handler: (event: TEvent) => Promise<void> | void,
+    context: string,
+  ): void;
+}
 
 export interface InMemoryIntegrationEventBusOptions
   extends BaseEventBusOptions {
@@ -14,11 +24,108 @@ export class InMemoryIntegrationEventBus
   extends BaseEventBus<IIntegrationEvent>
   implements IIntegrationEventBus
 {
+  private readonly handlerContexts = new Map<
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    Function | IEventHandler<IIntegrationEvent>,
+    string
+  >();
+
   /**
    * Creates a new in-memory integration event bus
    */
   constructor(options: InMemoryIntegrationEventBusOptions = {}) {
     super(options);
+  }
+
+  override subscribe<T extends IIntegrationEvent>(
+    eventType: string | (new (...args: any[]) => T),
+    handler: (event: T) => Promise<void> | void,
+    context?: string, // Opcjonalny kontekst
+  ): void {
+    // Wywołujemy oryginalną metodę subscribe z klasy bazowej
+    super.subscribe(eventType, handler);
+
+    // Jeśli określono kontekst, zapisujemy go
+    if (context) {
+      this.handlerContexts.set(handler as any, context);
+    }
+  }
+
+  // Również nadpisujemy registerHandler dla zachowania spójności
+  override registerHandler<T extends IIntegrationEvent>(
+    eventType: string | (new (...args: any[]) => T),
+    handler: IEventHandler<T>,
+    context?: string, // Opcjonalny kontekst
+  ): void {
+    super.registerHandler(eventType, handler);
+
+    if (context) {
+      this.handlerContexts.set(handler as any, context);
+    }
+
+    const eventName = this.getEventName(eventType);
+    this.log(
+      `Registered class handler to ${eventName}${context ? ` for context: ${context}` : ''}`,
+    );
+  }
+
+  protected override buildPublishPipeline(): (
+    event: IIntegrationEvent,
+  ) => Promise<void> {
+    const basePipeline = async (event: IIntegrationEvent): Promise<void> => {
+      const eventName = this.getEventTypeName(event);
+      const handlers = this.handlers.get(eventName);
+
+      if (!handlers || handlers.size === 0) {
+        this.log(`No handlers for ${eventName}`);
+        return;
+      }
+
+      const targetContext = event.metadata?.targetContext;
+      const promises: Promise<void>[] = [];
+
+      for (const handler of handlers) {
+        // Sprawdź, czy handler powinien otrzymać event
+        const handlerContext = this.handlerContexts.get(handler);
+
+        // Filtruj tylko jeśli zarówno target jak i handler mają określony kontekst
+        if (
+          !targetContext ||
+          !handlerContext ||
+          targetContext === handlerContext
+        ) {
+          try {
+            let result: void | Promise<void>;
+
+            if (isEventHandler(handler)) {
+              result = handler.handle(event);
+            } else {
+              result = handler(event);
+            }
+
+            if (result instanceof Promise) {
+              promises.push(result);
+            }
+          } catch (error) {
+            this.handleError(error as Error, eventName);
+          }
+        }
+      }
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
+      }
+    };
+
+    // Zastosuj middleware - reszta logiki pozostaje bez zmian
+    let pipeline = basePipeline;
+    if (this.options.middlewares) {
+      for (let i = this.options.middlewares.length - 1; i >= 0; i--) {
+        pipeline = this.options.middlewares[i](pipeline);
+      }
+    }
+
+    return pipeline;
   }
 
   /**

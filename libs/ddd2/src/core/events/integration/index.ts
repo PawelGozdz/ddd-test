@@ -4,6 +4,5 @@ export * from './integration-event-interfaces';
 export * from './integration-event-transformer-registry';
 export * from './integration-event.utils';
 export * from './integration-event';
-export * from './integration-event-filter';
 export * from './in-memory-integraton-event-bus';
 export * from './integration-processor';
