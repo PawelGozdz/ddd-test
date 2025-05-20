@@ -9,14 +9,6 @@ import {
 import { IEventProcessor } from './event-processor';
 
 /**
- * Options for configuring the universal event dispatcher
- */
-export interface UniversalEventDispatcherOptions {
-  /** Domain event bus (required) */
-  domainEventBus: IEventBus<IDomainEvent>;
-}
-
-/**
  * Universal event dispatcher with middleware and processor support
  * Coordinates the dispatching of events across different buses
  */
@@ -28,9 +20,8 @@ export class UniversalEventDispatcher implements IEnhancedEventDispatcher {
   /**
    * Create a new universal event dispatcher
    */
-  constructor(options?: UniversalEventDispatcherOptions) {
+  constructor() {
     this.registry = new EventBusRegistry();
-    // this.registry.register('domain', options.domainEventBus);
   }
 
   /**

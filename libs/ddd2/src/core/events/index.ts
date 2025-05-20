@@ -8,6 +8,6 @@ export * from './integration';
 export * from './event-persistence-handler.interface';
 export * from './generic-event-persistence-handler';
 export * from './event-processor';
-export * from './event-dispatcher-factory';
+// export * from './event-dispatcher-factory';
 export * from './base-event-bus';
 export * from './event-bus-registry';
