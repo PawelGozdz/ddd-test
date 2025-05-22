@@ -1,912 +1,860 @@
-# Validation in DomainTS - LLM-Optimized Guide
+# HOW-TO: Validation & Specifications Module
 
-## Document Metadata
+## Przegląd Modułu
 
-- **Pattern Name**: Domain Validation
-- **Category**: Domain-Driven Design (DDD) Pattern
-- **Purpose**: Enforce business rules and ensure domain object integrity
-- **Library**: DomainTS
-- **Language**: TypeScript
-- **Version**: 1.0.0
+Moduł Validation & Specifications w DomainTS zapewnia kompletny system walidacji domenowej i specyfikacji biznesowych. Składa się z dwóch głównych komponentów:
 
-## Pattern Overview
+1. **Specifications** - wzorzec do enkapsulacji reguł biznesowych i logiki domenowej
+2. **Validators** - system walidacji oparty na regułach biznesowych
 
-### What is Domain Validation?
+## Architektura Modułu
 
-Domain Validation ensures that domain objects always exist in a valid state according to business rules. Unlike simple data validation (checking if a field is not empty), domain validation enforces complex business rules that may involve multiple properties or even external conditions.
-
-**Core Concept**:
-
-```typescript
-// Domain validation answers: "Is this object valid according to business rules?"
-validator.validate(domainObject) // returns Result<T, ValidationErrors>
+```
+validations/
+├── specifications/
+│   ├── specification-interface.ts
+│   ├── composite-specification.ts
+│   ├── specification-operators.ts
+│   └── specification-validator.ts
+├── validators/
+│   ├── validator-interface.ts
+│   ├── business-rule-validator.ts
+│   └── business-rule-validator-extension.ts
+├── rules/
+│   └── rules-registry.ts
+├── errors/
+│   └── validation-error.ts
+├── facades/
+│   └── validation-facade.ts
+└── examples/
+    └── validation-examples.ts
 ```
 
-### Primary Use Cases
+## 1. Core Interfaces & Types
 
-1. **Aggregate Validation**: Ensure aggregates maintain invariants
-2. **Value Object Creation**: Validate data before creating value objects
-3. **Command Validation**: Check if commands can be executed
-4. **Business Rule Enforcement**: Apply complex domain rules
-5. **Multi-property Validation**: Rules that span multiple fields
-
-### Key Benefits
-
-- **Centralized Rules**: All validation logic in one place
-- **Reusability**: Share validation rules across the domain
-- **Composability**: Build complex validations from simple rules
-- **Type Safety**: Full TypeScript support with generics
-- **Integration**: Works seamlessly with Specifications
-
-## Core Components
-
-### 1. IValidator Interface
-
-**Purpose**: Define the contract for all validators
-
+### ISpecification Interface
 ```typescript
-interface IValidator<T> {
-  // Validates a value and returns a Result
+export interface ISpecification<T> {
+  isSatisfiedBy(candidate: T): boolean;
+  and(other: ISpecification<T>): ISpecification<T>;
+  or(other: ISpecification<T>): ISpecification<T>;
+  not(): ISpecification<T>;
+
+  readonly name?: string;
+  readonly description?: string;
+
+  explainFailure?(candidate: T): string | null;
+}
+```
+
+### IValidator Interface
+```typescript
+export interface IValidator<T> {
   validate(value: T): Result<T, ValidationErrors>;
 }
 ```
 
-**Key Concepts**:
-
-- Uses the Result pattern for error handling
-- Returns the validated object on success
-- Returns ValidationErrors on failure
-
-### 2. ValidationError and ValidationErrors
-
-**Purpose**: Represent validation failures
-
+### ValidationError Classes
 ```typescript
-class ValidationError {
+export class ValidationError {
   constructor(
-    public readonly property: string,    // Which property failed
-    public readonly message: string,     // Error message
-    public readonly context?: Record<string, any>  // Additional data
+    public readonly property: string,
+    public readonly message: string,
+    public readonly context?: Record<string, any>,
   ) {}
 }
 
-class ValidationErrors extends Error {
+export class ValidationErrors extends Error {
   constructor(public readonly errors: ValidationError[]) {
     super(`Validation failed with ${errors.length} error(s)`);
   }
 }
 ```
 
-**Usage Pattern**:
+## 2. Implementacja Specyfikacji
 
+### CompositeSpecification Base Class
 ```typescript
-// Single error
-const error = new ValidationError('email', 'Invalid email format');
+export abstract class CompositeSpecification<T> implements ISpecification<T> {
+  abstract isSatisfiedBy(candidate: T): boolean;
 
-// Multiple errors
-const errors = new ValidationErrors([
-  new ValidationError('email', 'Invalid email format'),
-  new ValidationError('age', 'Must be 18 or older')
-]);
+  and(other: ISpecification<T>): ISpecification<T> {
+    return new AndSpecification<T>(this, other);
+  }
+
+  or(other: ISpecification<T>): ISpecification<T> {
+    return new OrSpecification<T>(this, other);
+  }
+
+  not(): ISpecification<T> {
+    return new NotSpecification<T>(this);
+  }
+}
 ```
 
-### 3. BusinessRuleValidator
-
-**Purpose**: Primary validator for enforcing business rules
-
+### Composite Operators
 ```typescript
-class BusinessRuleValidator<T> implements IValidator<T> {
-  // Add a simple validation rule
+export class AndSpecification<T> extends CompositeSpecification<T> {
+  constructor(
+    private readonly left: ISpecification<T>,
+    private readonly right: ISpecification<T>,
+  ) {
+    super();
+  }
+
+  isSatisfiedBy(candidate: T): boolean {
+    return this.left.isSatisfiedBy(candidate) && this.right.isSatisfiedBy(candidate);
+  }
+}
+
+export class OrSpecification<T> extends CompositeSpecification<T> {
+  constructor(
+    private readonly left: ISpecification<T>,
+    private readonly right: ISpecification<T>,
+  ) {
+    super();
+  }
+
+  isSatisfiedBy(candidate: T): boolean {
+    return this.left.isSatisfiedBy(candidate) || this.right.isSatisfiedBy(candidate);
+  }
+}
+
+export class NotSpecification<T> extends CompositeSpecification<T> {
+  constructor(private readonly spec: ISpecification<T>) {
+    super();
+  }
+
+  isSatisfiedBy(candidate: T): boolean {
+    return !this.spec.isSatisfiedBy(candidate);
+  }
+}
+```
+
+### Specification Helpers & Operators
+```typescript
+export class PredicateSpecification<T> extends CompositeSpecification<T> {
+  constructor(private readonly predicate: (candidate: T) => boolean) {
+    super();
+  }
+
+  isSatisfiedBy(candidate: T): boolean {
+    return this.predicate(candidate);
+  }
+}
+
+export class PropertyEqualsSpecification<T> extends CompositeSpecification<T> {
+  constructor(
+    private readonly propertyName: keyof T,
+    private readonly expectedValue: any,
+  ) {
+    super();
+  }
+
+  isSatisfiedBy(candidate: T): boolean {
+    return candidate[this.propertyName] === this.expectedValue;
+  }
+}
+
+export const Specification = {
+  create<T>(predicate: (candidate: T) => boolean): ISpecification<T> {
+    return new PredicateSpecification<T>(predicate);
+  },
+
+  propertyEquals<T>(propertyName: keyof T, expectedValue: any): ISpecification<T> {
+    return new PropertyEqualsSpecification<T>(propertyName, expectedValue);
+  },
+
+  and<T>(...specifications: ISpecification<T>[]): ISpecification<T> {
+    if (specifications.length === 0) return new AlwaysTrueSpecification<T>();
+    
+    let result = specifications[0];
+    for (let i = 1; i < specifications.length; i++) {
+      result = new AndSpecification<T>(result, specifications[i]);
+    }
+    return result;
+  },
+
+  or<T>(...specifications: ISpecification<T>[]): ISpecification<T> {
+    if (specifications.length === 0) return new AlwaysFalseSpecification<T>();
+    
+    let result = specifications[0];
+    for (let i = 1; i < specifications.length; i++) {
+      result = new OrSpecification<T>(result, specifications[i]);
+    }
+    return result;
+  }
+};
+```
+
+## 3. Implementacja Walidatorów
+
+### BusinessRuleValidator
+```typescript
+export class BusinessRuleValidator<T> implements IValidator<T> {
+  private rules: ValidationRule<T>[] = [];
+  private stopOnFirstFailure = false;
+  private lastCondition: ((value: T) => boolean) | null = null;
+
   addRule(
     property: string,
-    predicate: (value: T) => boolean,
-    message: string
-  ): BusinessRuleValidator<T>;
-  
-  // Add specification-based validation
+    validationFn: (value: T) => boolean,
+    message: string,
+    context?: Record<string, any>,
+  ): BusinessRuleValidator<T> {
+    this.rules.push({
+      property,
+      validate: (value: T) => {
+        return validationFn(value)
+          ? Result.ok(true)
+          : Result.fail(new ValidationError(property, message, context));
+      },
+    });
+    return this;
+  }
+
   mustSatisfy(
     specification: ISpecification<T>,
-    message: string
-  ): BusinessRuleValidator<T>;
-  
-  // Conditional validation
+    message: string,
+    context?: Record<string, any>,
+  ): BusinessRuleValidator<T> {
+    return this.addRule(
+      '',
+      (value) => specification.isSatisfiedBy(value),
+      message,
+      context,
+    );
+  }
+
+  propertyMustSatisfy<P>(
+    property: keyof T & string,
+    specification: ISpecification<P>,
+    message: string,
+    getValue: (obj: T) => P,
+    context?: Record<string, any>,
+  ): BusinessRuleValidator<T> {
+    return this.addRule(
+      property,
+      (value) => specification.isSatisfiedBy(getValue(value)),
+      message,
+      context,
+    );
+  }
+
   when(
     condition: (value: T) => boolean,
-    thenRules: (validator: BusinessRuleValidator<T>) => void
-  ): BusinessRuleValidator<T>;
-  
-  // Validate nested objects
+    thenValidator: (validator: BusinessRuleValidator<T>) => void,
+  ): BusinessRuleValidator<T> {
+    this.lastCondition = condition;
+
+    const conditionalValidator = new BusinessRuleValidator<T>();
+    thenValidator(conditionalValidator);
+
+    for (const rule of conditionalValidator.rules) {
+      this.rules.push({
+        ...rule,
+        condition,
+      });
+    }
+
+    return this;
+  }
+
+  otherwise(
+    elseValidator: (validator: BusinessRuleValidator<T>) => void,
+  ): BusinessRuleValidator<T> {
+    if (!this.lastCondition) {
+      throw new Error('Cannot call otherwise() without a preceding when()');
+    }
+
+    const lastConditionFn = this.lastCondition;
+    const negatedCondition = (value: T) => !lastConditionFn(value);
+
+    const elseConditionalValidator = new BusinessRuleValidator<T>();
+    elseValidator(elseConditionalValidator);
+
+    for (const rule of elseConditionalValidator.rules) {
+      this.rules.push({
+        ...rule,
+        condition: negatedCondition,
+      });
+    }
+
+    this.lastCondition = null;
+    return this;
+  }
+
+  whenSatisfies(
+    specification: ISpecification<T>,
+    thenValidator: (validator: BusinessRuleValidator<T>) => void,
+  ): BusinessRuleValidator<T> {
+    return this.when(
+      (value) => specification.isSatisfiedBy(value),
+      thenValidator,
+    );
+  }
+
   addNested<P>(
     property: string,
     validator: IValidator<P>,
-    getValue: (obj: T) => P
-  ): BusinessRuleValidator<T>;
-}
-```
+    getValue: (obj: T) => P | undefined | null,
+  ): BusinessRuleValidator<T> {
+    this.rules.push({
+      property,
+      validate: (value: T) => {
+        const propertyValue = getValue(value);
 
-### 4. Rules Registry and Core Rules
+        if (propertyValue === undefined || propertyValue === null) {
+          return Result.fail(
+            new ValidationError(
+              property,
+              'Cannot validate undefined or null nested object',
+              { path: property },
+            ),
+          );
+        }
 
-**Purpose**: Provide reusable validation rules
+        const result = validator.validate(propertyValue);
 
-```typescript
-interface ICoreRules {
-  // Basic validations
-  required<T>(property: keyof T, message?: string): RuleFunction<T>;
-  minLength<T>(property: keyof T, length: number, message?: string): RuleFunction<T>;
-  maxLength<T>(property: keyof T, length: number, message?: string): RuleFunction<T>;
-  pattern<T>(property: keyof T, regex: RegExp, message?: string): RuleFunction<T>;
-  range<T>(property: keyof T, min: number, max: number, message?: string): RuleFunction<T>;
-  email<T>(property: keyof T, message?: string): RuleFunction<T>;
-  
-  // Specification integration
-  satisfies<T>(specification: ISpecification<T>, message: string): RuleFunction<T>;
-  
-  // Conditional rules
-  when<T>(
-    condition: (value: T) => boolean,
-    thenRules: (validator: BusinessRuleValidator<T>) => void
-  ): RuleFunction<T>;
-}
-```
+        if (result.isFailure) {
+          const prefixedErrors = result.error.errors.map((err) => {
+            return new ValidationError(
+              `${property}${err.property ? `.${err.property}` : ''}`,
+              err.message,
+              {
+                ...(err.context || {}),
+                path: property + (err.property ? `.${err.property}` : ''),
+              },
+            );
+          });
 
-## Basic Usage Examples
+          return Result.fail(
+            new ValidationError(property, 'Nested validation failed', {
+              errors: prefixedErrors,
+              path: property,
+            }),
+          );
+        }
 
-### 1. Simple Property Validation
-
-```typescript
-// Domain model
-class Customer {
-  constructor(
-    public readonly id: string,
-    public readonly email: string,
-    public readonly age: number,
-    public readonly name: string
-  ) {}
-}
-
-// Create validator
-const customerValidator = BusinessRuleValidator.create<Customer>()
-  .addRule('email', 
-    customer => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email),
-    'Invalid email format'
-  )
-  .addRule('age',
-    customer => customer.age >= 18,
-    'Customer must be 18 or older'
-  )
-  .addRule('name',
-    customer => customer.name.length >= 2,
-    'Name must be at least 2 characters'
-  );
-
-// Validate
-const customer = new Customer('1', 'invalid-email', 16, 'A');
-const result = customerValidator.validate(customer);
-
-if (result.isFailure()) {
-  console.log('Validation errors:', result.error.errors);
-  // Output: 
-  // - email: Invalid email format
-  // - age: Customer must be 18 or older
-  // - name: Name must be at least 2 characters
-}
-```
-
-### 2. Using Core Rules
-
-```typescript
-const Rules = RulesRegistry.Rules;
-
-const customerValidator = BusinessRuleValidator.create<Customer>()
-  .apply(Rules.required('email'))
-  .apply(Rules.email('email'))
-  .apply(Rules.minLength('name', 2))
-  .apply(Rules.range('age', 18, 120, 'Age must be between 18 and 120'));
-
-// More concise with chaining
-const orderValidator = BusinessRuleValidator.create<Order>()
-  .apply(Rules.required('customerId'))
-  .apply(Rules.required('items'))
-  .apply(Rules.minLength('items', 1, 'Order must have at least one item'))
-  .apply(Rules.range('totalAmount', 0.01, 999999.99));
-```
-
-### 3. Specification Integration
-
-```typescript
-// Define specifications
-class PremiumCustomerSpecification extends CompositeSpecification<Customer> {
-  isSatisfiedBy(customer: Customer): boolean {
-    return customer.totalPurchases > 1000 || customer.membershipLevel === 'gold';
+        return Result.ok(true);
+      },
+    });
+    return this;
   }
-}
 
-class ValidShippingAddressSpecification extends CompositeSpecification<Address> {
-  isSatisfiedBy(address: Address): boolean {
-    return address.street.length > 0 && 
-           address.city.length > 0 && 
-           address.postalCode.match(/^\d{5}$/) !== null;
-  }
-}
-
-// Use specifications in validation
-const orderValidator = BusinessRuleValidator.create<Order>()
-  .mustSatisfy(
-    new ValidOrderSpecification(),
-    'Order must be in a valid state'
-  )
-  .propertyMustSatisfy(
-    'shippingAddress',
-    new ValidShippingAddressSpecification(),
-    'Shipping address is invalid',
-    order => order.shippingAddress
-  );
-```
-
-### 4. Conditional Validation
-
-```typescript
-const customerValidator = BusinessRuleValidator.create<Customer>()
-  .when(
-    customer => customer.country === 'US',
-    validator => validator
-      .addRule('state', 
-        customer => customer.state !== undefined,
-        'State is required for US customers'
-      )
-      .addRule('zipCode',
-        customer => /^\d{5}(-\d{4})?$/.test(customer.zipCode),
-        'Invalid US zip code format'
-      )
-  )
-  .when(
-    customer => customer.country === 'UK',
-    validator => validator
-      .addRule('postcode',
-        customer => /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i.test(customer.postcode),
-        'Invalid UK postcode format'
-      )
-  )
-  .otherwise(
-    validator => validator
-      .addRule('region',
-        customer => customer.region !== undefined,
-        'Region is required for non-US/UK customers'
-      )
-  );
-```
-
-### 5. Nested Object Validation
-
-```typescript
-// Domain models
-class OrderItem {
-  constructor(
-    public readonly productId: string,
-    public readonly quantity: number,
-    public readonly price: number
-  ) {}
-}
-
-class Order {
-  constructor(
-    public readonly id: string,
-    public readonly items: OrderItem[],
-    public readonly shippingAddress: Address,
-    public readonly billingAddress: Address
-  ) {}
-}
-
-// Validators for nested objects
-const orderItemValidator = BusinessRuleValidator.create<OrderItem>()
-  .apply(Rules.required('productId'))
-  .apply(Rules.range('quantity', 1, 100))
-  .apply(Rules.range('price', 0.01, 999999.99));
-
-const addressValidator = BusinessRuleValidator.create<Address>()
-  .apply(Rules.required('street'))
-  .apply(Rules.required('city'))
-  .apply(Rules.required('postalCode'))
-  .apply(Rules.pattern('postalCode', /^\d{5}$/, 'Invalid postal code'));
-
-// Main validator with nested validation
-const orderValidator = BusinessRuleValidator.create<Order>()
-  .apply(Rules.required('id'))
-  .addCollection('items', orderItemValidator)
-  .addNested('shippingAddress', addressValidator, order => order.shippingAddress)
-  .addNested('billingAddress', addressValidator, order => order.billingAddress);
-```
-
-## Advanced Validation Patterns
-
-### 1. Cross-Property Validation
-
-```typescript
-const dateRangeValidator = BusinessRuleValidator.create<DateRange>()
-  .addRule('',  // Empty property means validate entire object
-    range => range.startDate <= range.endDate,
-    'Start date must be before end date'
-  );
-
-const orderValidator = BusinessRuleValidator.create<Order>()
-  .addRule('',
-    order => order.items.reduce((sum, item) => sum + item.price * item.quantity, 0) === order.totalAmount,
-    'Total amount does not match sum of items'
-  );
-```
-
-### 2. Async Validation (external dependencies)
-
-```typescript
-class AsyncOrderValidator implements IValidator<Order> {
-  constructor(
-    private readonly customerRepository: CustomerRepository,
-    private readonly productRepository: ProductRepository
-  ) {}
-  
-  async validate(order: Order): Promise<Result<Order, ValidationErrors>> {
+  validate(value: T): Result<T, ValidationErrors> {
     const errors: ValidationError[] = [];
-    
-    // Check if customer exists
-    const customer = await this.customerRepository.findById(order.customerId);
-    if (!customer) {
-      errors.push(new ValidationError('customerId', 'Customer does not exist'));
-    }
-    
-    // Check if all products exist and are available
-    for (const item of order.items) {
-      const product = await this.productRepository.findById(item.productId);
-      if (!product) {
-        errors.push(new ValidationError(
-          `items.${item.productId}`,
-          `Product ${item.productId} does not exist`
-        ));
-      } else if (product.stock < item.quantity) {
-        errors.push(new ValidationError(
-          `items.${item.productId}`,
-          `Insufficient stock for product ${item.productId}`
-        ));
+
+    for (const rule of this.rules) {
+      if (rule.condition && !rule.condition(value)) {
+        continue;
+      }
+
+      const result = rule.validate(value);
+      if (result.isFailure) {
+        errors.push(result.error);
+
+        if (this.stopOnFirstFailure) {
+          break;
+        }
       }
     }
-    
+
     if (errors.length > 0) {
       return Result.fail(new ValidationErrors(errors));
     }
-    
-    return Result.ok(order);
+
+    return Result.ok(value);
+  }
+
+  static create<T>(): BusinessRuleValidator<T> {
+    return new BusinessRuleValidator<T>();
   }
 }
 ```
 
-### 3. Domain-Specific Rule Providers
-
+### SpecificationValidator
 ```typescript
-// Define domain-specific rules
-interface IEcommerceRules extends IRulesProvider {
-  validSku<T>(property: keyof T, message?: string): RuleFunction<T>;
-  validCreditCard<T>(property: keyof T, message?: string): RuleFunction<T>;
-  validShippingMethod<T>(property: keyof T, allowedMethods: string[], message?: string): RuleFunction<T>;
-}
+export class SpecificationValidator<T> implements IValidator<T> {
+  private validationRules: Array<{
+    specification: ISpecification<T>;
+    message: string;
+    property?: string;
+    context?: Record<string, any>;
+  }> = [];
 
-class EcommerceRules implements IEcommerceRules {
-  readonly name = 'ecommerce';
-  
-  validSku<T>(property: keyof T, message = 'Invalid SKU format'): RuleFunction<T> {
-    return (validator) => validator.addRule(
-      property as string,
-      value => /^[A-Z]{3}-\d{4}-[A-Z]{2}$/.test(String(value[property])),
-      message
-    );
+  addRule(
+    specification: ISpecification<T>,
+    message: string,
+    property?: string,
+    context?: Record<string, any>,
+  ): SpecificationValidator<T> {
+    this.validationRules.push({
+      specification,
+      message,
+      property,
+      context,
+    });
+    return this;
   }
-  
-  validCreditCard<T>(property: keyof T, message = 'Invalid credit card number'): RuleFunction<T> {
-    return (validator) => validator.addRule(
-      property as string,
-      value => this.validateCreditCard(String(value[property])),
-      message
-    );
+
+  addPropertyRule<P>(
+    property: keyof T & string,
+    specification: ISpecification<P>,
+    message: string,
+    getValue: (obj: T) => P,
+    context?: Record<string, any>,
+  ): SpecificationValidator<T> {
+    const propertySpec: ISpecification<T> = {
+      isSatisfiedBy: (candidate: T) =>
+        specification.isSatisfiedBy(getValue(candidate)),
+      and: () => { throw new Error('Operation not supported'); },
+      or: () => { throw new Error('Operation not supported'); },
+      not: () => { throw new Error('Operation not supported'); },
+    };
+
+    return this.addRule(propertySpec, message, property, context);
   }
-  
-  validShippingMethod<T>(
-    property: keyof T, 
-    allowedMethods: string[], 
-    message = 'Invalid shipping method'
-  ): RuleFunction<T> {
-    return (validator) => validator.addRule(
-      property as string,
-      value => allowedMethods.includes(String(value[property])),
-      message
-    );
-  }
-  
-  private validateCreditCard(cardNumber: string): boolean {
-    // Luhn algorithm implementation
-    const digits = cardNumber.replace(/\D/g, '');
-    if (digits.length !== 16) return false;
-    
-    let sum = 0;
-    let isEven = false;
-    
-    for (let i = digits.length - 1; i >= 0; i--) {
-      let digit = parseInt(digits[i], 10);
-      
-      if (isEven) {
-        digit *= 2;
-        if (digit > 9) digit -= 9;
+
+  validate(value: T): Result<T, ValidationErrors> {
+    const errors: ValidationError[] = [];
+
+    for (const rule of this.validationRules) {
+      if (!rule.specification.isSatisfiedBy(value)) {
+        errors.push(
+          new ValidationError(rule.property || '', rule.message, rule.context),
+        );
       }
-      
-      sum += digit;
-      isEven = !isEven;
     }
-    
-    return sum % 10 === 0;
-  }
-}
 
-// Register domain rules
-RulesRegistry.register(new EcommerceRules());
-
-// Use domain rules
-const ecommerceRules = RulesRegistry.forDomain<IEcommerceRules>('ecommerce');
-
-const productValidator = BusinessRuleValidator.create<Product>()
-  .apply(ecommerceRules.validSku('sku'))
-  .apply(Rules.required('name'))
-  .apply(Rules.range('price', 0.01, 999999.99));
-```
-
-### 4. Validation Facade Usage
-
-```typescript
-// Simple validation
-const emailResult = Validation.validateWithSpecification(
-  'invalid-email',
-  new EmailSpecification(),
-  'Invalid email format'
-);
-
-// Multiple rules validation
-const customerResult = Validation.validateWithRules(customer, [
-  {
-    specification: new AdultCustomerSpecification(),
-    message: 'Customer must be 18 or older',
-    property: 'age'
-  },
-  {
-    specification: new ValidEmailSpecification(),
-    message: 'Invalid email format',
-    property: 'email'
-  }
-]);
-
-// Combine validators
-const combinedValidator = Validation.combine(
-  customerValidator,
-  addressValidator,
-  paymentValidator
-);
-
-// Validate nested path
-const pathResult = Validation.validatePath(
-  order,
-  ['shippingAddress', 'postalCode'],
-  postalCodeValidator
-);
-```
-
-## Domain Example: Order Processing System
-
-### Domain Models
-
-```typescript
-// Value Objects
-class Money {
-  constructor(
-    public readonly amount: number,
-    public readonly currency: string
-  ) {}
-  
-  add(other: Money): Money {
-    if (this.currency !== other.currency) {
-      throw new Error('Cannot add money with different currencies');
+    if (errors.length > 0) {
+      return Result.fail(new ValidationErrors(errors));
     }
-    return new Money(this.amount + other.amount, this.currency);
+
+    return Result.ok(value);
   }
-}
 
-class Address {
-  constructor(
-    public readonly street: string,
-    public readonly city: string,
-    public readonly state: string,
-    public readonly postalCode: string,
-    public readonly country: string
-  ) {}
-}
+  static create<T>(): SpecificationValidator<T> {
+    return new SpecificationValidator<T>();
+  }
 
-// Entities
-class OrderItem {
-  constructor(
-    public readonly productId: string,
-    public readonly productName: string,
-    public readonly quantity: number,
-    public readonly unitPrice: Money,
-    public readonly discount: number = 0
-  ) {}
-  
-  get totalPrice(): Money {
-    const discountedAmount = this.unitPrice.amount * (1 - this.discount / 100);
-    return new Money(
-      discountedAmount * this.quantity,
-      this.unitPrice.currency
+  static fromSpecification<T>(
+    specification: ISpecification<T>,
+    message: string,
+    property?: string,
+    context?: Record<string, any>,
+  ): SpecificationValidator<T> {
+    return new SpecificationValidator<T>().addRule(
+      specification,
+      message,
+      property,
+      context,
     );
   }
 }
-
-// Aggregate
-class Order {
-  constructor(
-    public readonly id: string,
-    public readonly customerId: string,
-    public readonly items: OrderItem[],
-    public readonly shippingAddress: Address,
-    public readonly billingAddress: Address,
-    public readonly shippingMethod: string,
-    public readonly paymentMethod: string,
-    public readonly status: OrderStatus = 'pending'
-  ) {}
-  
-  get totalAmount(): Money {
-    return this.items.reduce(
-      (sum, item) => sum.add(item.totalPrice),
-      new Money(0, 'USD')
-    );
-  }
-}
-
-type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
 ```
 
-### Validation Implementation
+## 4. Rules Registry System
 
+### IRulesProvider & ICoreRules Interfaces
 ```typescript
-// Money validator
-const moneyValidator = BusinessRuleValidator.create<Money>()
-  .apply(Rules.range('amount', 0, 999999.99, 'Amount must be between 0 and 999,999.99'))
-  .apply(Rules.pattern('currency', /^[A-Z]{3}$/, 'Currency must be a 3-letter code'));
+export interface IRulesProvider {
+  readonly name: string;
+}
 
-// Address validator
-const addressValidator = BusinessRuleValidator.create<Address>()
-  .apply(Rules.required('street'))
-  .apply(Rules.minLength('street', 5))
-  .apply(Rules.required('city'))
-  .apply(Rules.minLength('city', 2))
-  .apply(Rules.required('postalCode'))
-  .when(
-    address => address.country === 'US',
-    validator => validator
-      .apply(Rules.pattern('postalCode', /^\d{5}(-\d{4})?$/, 'Invalid US postal code'))
-      .apply(Rules.required('state'))
-      .apply(Rules.pattern('state', /^[A-Z]{2}$/, 'State must be 2-letter code'))
-  )
-  .when(
-    address => address.country === 'CA',
-    validator => validator
-      .apply(Rules.pattern('postalCode', /^[A-Z]\d[A-Z] \d[A-Z]\d$/, 'Invalid Canadian postal code'))
-      .apply(Rules.required('state'))
-  );
+export interface RuleFunction<T> {
+  (validator: BusinessRuleValidator<T>): BusinessRuleValidator<T>;
+}
 
-// Order item validator
-const orderItemValidator = BusinessRuleValidator.create<OrderItem>()
-  .apply(Rules.required('productId'))
-  .apply(Rules.required('productName'))
-  .apply(Rules.range('quantity', 1, 100, 'Quantity must be between 1 and 100'))
-  .apply(Rules.range('discount', 0, 100, 'Discount must be between 0 and 100'))
-  .addNested('unitPrice', moneyValidator, item => item.unitPrice);
+export interface ICoreRules {
+  required: <T>(property: keyof T, message?: string) => RuleFunction<T>;
+  minLength: <T>(property: keyof T, length: number, message?: string) => RuleFunction<T>;
+  maxLength: <T>(property: keyof T, length: number, message?: string) => RuleFunction<T>;
+  pattern: <T>(property: keyof T, regex: RegExp, message?: string) => RuleFunction<T>;
+  range: <T>(property: keyof T, min: number, max: number, message?: string) => RuleFunction<T>;
+  email: <T>(property: keyof T, message?: string) => RuleFunction<T>;
+  
+  satisfies: <T>(specification: ISpecification<T>, message: string) => RuleFunction<T>;
+  propertySatisfies: <T, P>(
+    property: keyof T & string,
+    specification: ISpecification<P>,
+    message: string,
+    getValue: (obj: T) => P,
+  ) => RuleFunction<T>;
+  
+  when: <T>(
+    condition: (value: T) => boolean,
+    thenRules: (validator: BusinessRuleValidator<T>) => void,
+  ) => RuleFunction<T>;
+  whenSatisfies: <T>(
+    specification: ISpecification<T>,
+    thenRules: (validator: BusinessRuleValidator<T>) => void,
+  ) => RuleFunction<T>;
+  otherwise: <T>(
+    elseRules: (validator: BusinessRuleValidator<T>) => void,
+  ) => RuleFunction<T>;
+}
+```
 
-// Complex order validator
-const orderValidator = BusinessRuleValidator.create<Order>()
-  .apply(Rules.required('id'))
-  .apply(Rules.required('customerId'))
-  .apply(Rules.minLength('items', 1, 'Order must have at least one item'))
-  .apply(Rules.propertyIn('shippingMethod', ['standard', 'express', 'overnight']))
-  .apply(Rules.propertyIn('paymentMethod', ['credit_card', 'paypal', 'bank_transfer']))
-  .addCollection('items', orderItemValidator)
-  .addNested('shippingAddress', addressValidator, order => order.shippingAddress)
-  .addNested('billingAddress', addressValidator, order => order.billingAddress)
-  .addRule('',
-    order => {
-      const itemsTotal = order.items.reduce(
-        (sum, item) => sum + item.totalPrice.amount,
-        0
+### CoreRules Implementation
+```typescript
+export class CoreRules implements ICoreRules, IRulesProvider {
+  readonly name = 'core';
+
+  required = <T>(property: keyof T, message = 'Field is required') =>
+    (validator: BusinessRuleValidator<T>) =>
+      validator.addRule(
+        property as string,
+        (value) => value[property] !== undefined && value[property] !== null,
+        message,
       );
-      return Math.abs(itemsTotal - order.totalAmount.amount) < 0.01;
-    },
-    'Order total does not match sum of items'
-  );
 
-// Order placement validator with business rules
-const orderPlacementValidator = BusinessRuleValidator.create<Order>()
-  .apply(orderValidator) // Include basic validation
-  .when(
-    order => order.shippingMethod === 'overnight',
-    validator => validator.addRule('',
-      order => order.totalAmount.amount >= 100,
-      'Overnight shipping requires minimum order of $100'
-    )
-  )
-  .when(
-    order => order.paymentMethod === 'credit_card',
-    validator => validator.apply(Rules.required('creditCardToken'))
-  )
-  .mustSatisfy(
-    new OrderCanBePlacedSpecification(),
-    'Order cannot be placed due to business constraints'
-  );
+  minLength = <T>(property: keyof T, length: number, message?: string) =>
+    (validator: BusinessRuleValidator<T>) =>
+      validator.addRule(
+        property as string,
+        (value) => String(value[property]).length >= length,
+        message || `Minimum length is ${length}`,
+      );
+
+  email = <T>(property: keyof T, message = 'Invalid email address') =>
+    (validator: BusinessRuleValidator<T>) =>
+      validator.addRule(
+        property as string,
+        (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value[property])),
+        message,
+      );
+
+  satisfies = <T>(specification: ISpecification<T>, message: string) =>
+    (validator: BusinessRuleValidator<T>) =>
+      validator.mustSatisfy(specification, message);
+
+  when = <T>(
+    condition: (value: T) => boolean,
+    thenRules: (validator: BusinessRuleValidator<T>) => void,
+  ) =>
+    (validator: BusinessRuleValidator<T>) =>
+      validator.when(condition, thenRules);
+
+  // ... other implementations
+}
 ```
 
-### Using Validation in Domain Services
-
+### RulesRegistry
 ```typescript
-class OrderService {
-  constructor(
-    private readonly orderRepository: OrderRepository,
-    private readonly customerRepository: CustomerRepository,
-    private readonly inventoryService: InventoryService
-  ) {}
-  
-  async placeOrder(order: Order): Promise<Result<Order, Error>> {
-    // Validate order
-    const validationResult = orderPlacementValidator.validate(order);
-    if (validationResult.isFailure()) {
-      return Result.fail(new Error(
-        `Order validation failed: ${validationResult.error.message}`
-      ));
+export class RulesRegistry {
+  private static providers: Map<string, IRulesProvider> = new Map();
+  private static core: CoreRules = new CoreRules();
+
+  static register(provider: IRulesProvider): void {
+    if (this.providers.has(provider.name)) {
+      throw new Error(`Rule provider with name "${provider.name}" is already registered`);
     }
-    
-    // Additional async validations
-    const asyncValidator = new AsyncOrderValidator(
-      this.customerRepository,
-      this.inventoryService
-    );
-    
-    const asyncResult = await asyncValidator.validate(order);
-    if (asyncResult.isFailure()) {
-      return Result.fail(new Error(
-        `Order validation failed: ${asyncResult.error.message}`
-      ));
+    this.providers.set(provider.name, provider);
+  }
+
+  static getProvider<T extends IRulesProvider>(name: string): T {
+    const provider = this.providers.get(name);
+    if (!provider) {
+      throw new Error(`Rule provider "${name}" not found`);
     }
-    
-    // Process order...
-    return Result.ok(order);
+    return provider as T;
+  }
+
+  static get Rules(): ICoreRules {
+    return this.core;
+  }
+
+  static forDomain<T extends IRulesProvider>(domain: string): T {
+    return this.getProvider<T>(domain);
   }
 }
 ```
 
-## Testing Validators
+## 5. Extensions & Advanced Features
 
+### BusinessRuleValidator Extensions
 ```typescript
-describe('OrderValidator', () => {
-  let validator: BusinessRuleValidator<Order>;
-  
-  beforeEach(() => {
-    validator = createOrderValidator(); // Your validator factory
+// Extension methods dodawane do prototypu
+BusinessRuleValidator.prototype.apply = function <T>(
+  this: BusinessRuleValidator<T>,
+  rule: (validator: BusinessRuleValidator<T>) => BusinessRuleValidator<T>,
+): BusinessRuleValidator<T> {
+  return rule(this);
+};
+
+BusinessRuleValidator.prototype.toSpecification = function <T>(
+  this: BusinessRuleValidator<T>,
+  errorMessage: string = 'Validation failed',
+): ISpecification<T> {
+  return Specification.create<T>(
+    (candidate) => this.validate(candidate).isSuccess,
+  );
+};
+```
+
+### Validation Facade
+```typescript
+export const Validation = {
+  create<T>(): BusinessRuleValidator<T> {
+    return BusinessRuleValidator.create<T>();
+  },
+
+  fromSpecification<T>(
+    specification: ISpecification<T>,
+    message: string,
+    property?: string,
+  ): IValidator<T> {
+    return SpecificationValidator.fromSpecification(specification, message, property);
+  },
+
+  combine<T>(...validators: IValidator<T>[]): IValidator<T> {
+    return {
+      validate: (value: T): Result<T, ValidationErrors> => {
+        const errors: ValidationErrors[] = [];
+
+        for (const validator of validators) {
+          const result = validator.validate(value);
+          if (result.isFailure) {
+            errors.push(result.error);
+          }
+        }
+
+        if (errors.length > 0) {
+          const allErrors = errors.flatMap((e) => e.errors);
+          return Result.fail(new ValidationErrors(allErrors));
+        }
+
+        return Result.ok(value);
+      },
+    };
+  },
+
+  validatePath<T, P>(
+    object: T,
+    path: (string | number)[],
+    valueValidator: IValidator<P>,
+  ): Result<T, ValidationErrors> {
+    // Implementation for deep path validation
+  }
+};
+```
+
+## 6. Praktyczne Przykłady Implementacji
+
+### Podstawowy Walidator Użytkownika
+```typescript
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  age: number;
+  premium?: boolean;
+  address?: Address;
+}
+
+const basicUserValidator = BusinessRuleValidator.create<User>()
+  .addRule(
+    'name',
+    (user) => user.name.length >= 2,
+    'Name must have at least 2 characters',
+  )
+  .addRule(
+    'email',
+    (user) => /^\S+@\S+\.\S+$/.test(user.email),
+    'Invalid email format',
+  )
+  .addRule('age', (user) => user.age >= 18, 'User must be 18 or older')
+  .when(
+    (user) => user.premium === true,
+    (validator) =>
+      validator.addRule(
+        'name',
+        (user) => user.name.length >= 3,
+        'Premium users must have longer names',
+      ),
+  );
+```
+
+### Walidator Oparty na Specyfikacjach
+```typescript
+const isAdult = Specification.create<User>((user) => user.age >= 18);
+const hasValidEmail = Specification.create<User>((user) =>
+  /^\S+@\S+\.\S+$/.test(user.email),
+);
+
+const specBasedUserValidator = BusinessRuleValidator.create<User>()
+  .mustSatisfy(isAdult, 'User must be 18 or older')
+  .mustSatisfy(hasValidEmail, 'Invalid email format')
+  .whenSatisfies(
+    Specification.create<User>((user) => user.premium === true),
+    (validator) =>
+      validator.mustSatisfy(
+        Specification.create<User>((user) => user.name.length >= 3),
+        'Premium users must have longer names',
+      ),
+  );
+```
+
+### Walidacja Zagnieżdżonych Obiektów
+```typescript
+const addressValidator = BusinessRuleValidator.create<Address>()
+  .addRule('street', (addr) => addr.street.length > 0, 'Street cannot be empty')
+  .addRule('city', (addr) => addr.city.length > 0, 'City cannot be empty');
+
+const complexUserValidator = BusinessRuleValidator.create<User>()
+  .apply(RulesRegistry.Rules.required('name', 'Name is required'))
+  .apply(RulesRegistry.Rules.email('email', 'Invalid email format'))
+  .when(
+    (user) => user.address !== undefined,
+    (validator) =>
+      validator.addNested('address', addressValidator, (user) => user.address),
+  );
+```
+
+## 7. Zaawansowane Wzorce Użycia
+
+### Kombinowanie Specyfikacji
+```typescript
+const hasMinimumIncome = Specification.create<LoanApplication>(
+  (app) => app.income >= 30000,
+);
+const hasGoodCreditScore = Specification.create<LoanApplication>(
+  (app) => app.creditScore >= 700,
+);
+
+const isEligibleForPremiumLoan = Specification.and(
+  hasMinimumIncome,
+  hasGoodCreditScore,
+  Specification.create<LoanApplication>((app) => app.amount <= app.income * 0.5),
+);
+```
+
+### Walidacja z Registry Rules
+```typescript
+const orderValidator = BusinessRuleValidator.create<Order>()
+  .apply(RulesRegistry.Rules.required('userId', 'User ID is required'))
+  .apply(RulesRegistry.Rules.satisfies(
+    Specification.create<Order>((order) => order.items.length > 0),
+    'Order must contain at least one item'
+  ))
+  .whenSatisfies(
+    Specification.create<Order>((order) => ['pending', 'confirmed'].includes(order.status)),
+    (validator) => validator.addRule(
+      'createdAt',
+      (order) => {
+        const now = new Date();
+        const diffDays = Math.ceil(
+          Math.abs(now.getTime() - order.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        return diffDays <= 30;
+      },
+      'Orders cannot be older than 30 days',
+    ),
+  );
+```
+
+## 8. Najlepsze Praktyki
+
+### 1. Struktura Projektu
+```
+src/domain/
+├── specifications/
+│   ├── user-specifications.ts
+│   ├── order-specifications.ts
+│   └── loan-specifications.ts
+├── validators/
+│   ├── user-validators.ts
+│   ├── order-validators.ts
+│   └── loan-validators.ts
+└── rules/
+    ├── business-rules.ts
+    └── domain-rules-provider.ts
+```
+
+### 2. Naming Conventions
+- Specyfikacje: `isEligible`, `hasValidStatus`, `canPerformAction`
+- Walidatory: `userValidator`, `orderValidator`, `applicationValidator`
+- Reguły: `required`, `minLength`, `mustSatisfy`
+
+### 3. Error Handling
+```typescript
+const result = validator.validate(userData);
+if (result.isFailure) {
+  const errors = result.error.errors.map(err => ({
+    field: err.property,
+    message: err.message,
+    context: err.context
+  }));
+  // Handle errors
+}
+```
+
+### 4. Testowanie
+```typescript
+describe('UserValidator', () => {
+  it('should validate adult users', () => {
+    const user = { name: 'John', email: 'john@example.com', age: 25 };
+    const result = userValidator.validate(user);
+    expect(result.isSuccess).toBe(true);
   });
-  
-  it('should validate valid order', () => {
-    const order = createValidOrder(); // Helper to create valid order
-    const result = validator.validate(order);
-    
-    expect(result.isSuccess()).toBe(true);
-  });
-  
-  it('should reject order without items', () => {
-    const order = createOrderWithoutItems();
-    const result = validator.validate(order);
-    
-    expect(result.isFailure()).toBe(true);
-    expect(result.error.errors).toContainEqual(
-      expect.objectContaining({
-        property: 'items',
-        message: 'Order must have at least one item'
-      })
-    );
-  });
-  
-  it('should validate US address correctly', () => {
-    const orderWithUSAddress = createOrderWithAddress({
-      country: 'US',
-      state: 'CA',
-      postalCode: '90210'
-    });
-    
-    const result = validator.validate(orderWithUSAddress);
-    expect(result.isSuccess()).toBe(true);
-  });
-  
-  it('should reject invalid US postal code', () => {
-    const orderWithInvalidZip = createOrderWithAddress({
-      country: 'US',
-      state: 'CA',
-      postalCode: 'INVALID'
-    });
-    
-    const result = validator.validate(orderWithInvalidZip);
-    expect(result.isFailure()).toBe(true);
-    expect(result.error.errors).toContainEqual(
-      expect.objectContaining({
-        property: 'shippingAddress.postalCode',
-        message: 'Invalid US postal code'
-      })
-    );
+
+  it('should fail for underage users', () => {
+    const user = { name: 'John', email: 'john@example.com', age: 16 };
+    const result = userValidator.validate(user);
+    expect(result.isFailure).toBe(true);
+    expect(result.error.errors[0].message).toBe('User must be 18 or older');
   });
 });
 ```
 
-## Best Practices
+## 9. Integracja z Result Pattern
 
-### 1. Separate Validation Concerns
+Wszystkie walidatory zwracają `Result<T, ValidationErrors>`:
 
 ```typescript
-// Bad - mixing UI and domain validation
-class UserValidator {
-  validate(user: User) {
-    if (!user.email) return 'Email is required'; // UI concern
-    if (user.age < 18) return 'Must be adult'; // Domain concern
-  }
+// Sukces
+const successResult = Result.ok(validatedObject);
+
+// Niepowodzenie
+const failureResult = Result.fail(new ValidationErrors([
+  new ValidationError('email', 'Invalid email format'),
+  new ValidationError('age', 'Must be 18 or older')
+]));
+```
+
+## 10. Rozszerzenia Domeny
+
+### Tworzenie Domain-Specific Rules
+```typescript
+export class ECommerceRules implements IRulesProvider {
+  readonly name = 'ecommerce';
+
+  validPrice = <T>(property: keyof T, message?: string) =>
+    (validator: BusinessRuleValidator<T>) =>
+      validator.addRule(
+        property as string,
+        (value) => {
+          const price = Number(value[property]);
+          return !isNaN(price) && price > 0;
+        },
+        message || 'Price must be a positive number',
+      );
+
+  inStock = <T>(getQuantity: (obj: T) => number, message?: string) =>
+    (validator: BusinessRuleValidator<T>) =>
+      validator.addRule(
+        'stock',
+        (value) => getQuantity(value) > 0,
+        message || 'Item must be in stock',
+      );
 }
 
-// Good - separate validators
-const uiValidator = BusinessRuleValidator.create<UserForm>()
-  .apply(Rules.required('email'));
+// Rejestracja
+RulesRegistry.register(new ECommerceRules());
 
-const domainValidator = BusinessRuleValidator.create<User>()
-  .mustSatisfy(new AdultUserSpecification(), 'User must be adult');
+// Użycie
+const productValidator = BusinessRuleValidator.create<Product>()
+  .apply(RulesRegistry.forDomain<ECommerceRules>('ecommerce').validPrice('price'))
+  .apply(RulesRegistry.forDomain<ECommerceRules>('ecommerce').inStock(p => p.quantity));
 ```
-
-### 2. Use Specifications for Complex Rules
-
-```typescript
-// Bad - complex logic in validator
-const validator = BusinessRuleValidator.create<Order>()
-  .addRule('', order => {
-    if (order.customer.type === 'premium') {
-      if (order.total > 1000) return true;
-      if (order.items.length > 5) return true;
-      return false;
-    }
-    return order.total > 2000;
-  }, 'Order does not meet requirements');
-
-// Good - use specification
-const validator = BusinessRuleValidator.create<Order>()
-  .mustSatisfy(
-    new OrderEligibleForDiscountSpecification(),
-    'Order is not eligible for discount'
-  );
-```
-
-### 3. Create Reusable Validators
-
-```typescript
-// Create validator factories
-function createMoneyValidator(maxAmount: number = 999999.99): IValidator<Money> {
-  return BusinessRuleValidator.create<Money>()
-    .apply(Rules.range('amount', 0, maxAmount))
-    .apply(Rules.pattern('currency', /^[A-Z]{3}$/));
-}
-
-// Compose validators
-const orderValidator = BusinessRuleValidator.create<Order>()
-  .addNested('totalAmount', createMoneyValidator(), order => order.totalAmount)
-  .addNested('shippingCost', createMoneyValidator(1000), order => order.shippingCost);
-```
-
-### 4. Provide Clear Error Messages
-
-```typescript
-// Bad - generic messages
-.addRule('email', customer => isValidEmail(customer.email), 'Invalid value');
-
-// Good - specific messages
-.addRule('email', 
-  customer => isValidEmail(customer.email), 
-  'Email must be in format: user@domain.com'
-);
-
-// Better - context-aware messages
-.addRule('creditLimit',
-  customer => customer.creditLimit <= calculateMaxCredit(customer),
-  customer => `Credit limit cannot exceed ${calculateMaxCredit(customer)} based on credit score`
-);
-```
-
-### 5. Handle Validation at Boundaries
-
-```typescript
-// Validate at aggregate creation
-class Order extends Aggregate {
-  static create(props: OrderProps): Result<Order, ValidationErrors> {
-    const validationResult = orderValidator.validate(props);
-    if (validationResult.isFailure()) {
-      return Result.fail(validationResult.error);
-    }
-    
-    return Result.ok(new Order(props));
-  }
-}
-
-// Validate at application service
-class OrderApplicationService {
-  async createOrder(command: CreateOrderCommand): Promise<Result<OrderDto, Error>> {
-    const validationResult = createOrderCommandValidator.validate(command);
-    if (validationResult.isFailure()) {
-      return Result.fail(validationResult.error);
-    }
-    
-    // Proceed with order creation...
-  }
-}
-```
-
-## Performance Considerations
-
-### 1. Lazy Validation
-
-```typescript
-class LazyValidator<T> implements IValidator<T> {
-  constructor(
-    private readonly rules: Array<(value: T) => ValidationError | null>
-  ) {}
-  
-  validate(value: T): Result<T, ValidationErrors> {
-    const errors: ValidationError[] = [];
-    
-    // Stop at first error if needed
-    for (const rule of this.rules) {
-      const error = rule(value);
-      if (error) {
-        errors.push(error);
-        // Optionally break here for fail-fast behavior
-      }
-    }
-    
-    return errors.length > 0 
-      ? Result.fail(new ValidationErrors(errors))
-      : Result.ok(value);
-  }
-}
-```
-
-### 2. Cached Validation Results
-
-```typescript
-class CachedValidator<T> implements IValidator<T> {
-  private cache = new WeakMap<T, Result<T, ValidationErrors>>();
-  
-  constructor(private readonly innerValidator: IValidator<T>) {}
-  
-  validate(value: T): Result<T, ValidationErrors> {
-    if (this.cache.has(value)) {
-      return this.cache.get(value)!;
-    }
-    
-    const result = this.innerValidator.validate(value);
-    this.cache.set(value, result);
-    return result;
-  }
-}
-```
-
-## Conclusion
-
-The Validation system in DomainTS provides:
-
-- **Type-safe validation**: Full TypeScript support
-- **Business rule enforcement**: Not just data validation
-- **Composability**: Build complex validations from simple rules
-- **Integration**: Works seamlessly with Specifications
-- **Flexibility**: Multiple validation styles and patterns
-- **Reusability**: Share validation logic across the domain
-
-This comprehensive validation system ensures your domain objects always maintain their invariants and business rules, providing a solid foundation for building robust domain models.
