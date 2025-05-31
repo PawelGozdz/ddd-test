@@ -15,6 +15,8 @@ export enum DomainErrorCode {
   FileWriteError = 'D_FILE_WRITE_ERROR',
   InvalidCredentials = 'D_INVALID_CREDENTIALS',
   MissingValue = 'D_MISSING_VALUE',
+  InternalError = 'D_INTERNAL_ERROR',
+  MethodNotSupported = 'D_METHOD_NOT_SUPPORTED',
 }
 
 export enum ApplicationErrorCode {

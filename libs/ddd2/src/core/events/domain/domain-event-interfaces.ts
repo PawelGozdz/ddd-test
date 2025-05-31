@@ -18,7 +18,7 @@ export interface IEventMetadata {
   causationId?: string;
 
   /** ID of the aggregate that generated the event */
-  aggregateId?: string | number;
+  aggregateId?: any;
 
   /** Type of the aggregate that generated the event */
   aggregateType?: string;

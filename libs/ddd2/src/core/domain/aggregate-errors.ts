@@ -43,16 +43,12 @@ export class AggregateError extends IDomainError {
   /**
    * Error for when a required feature is not enabled
    */
-  static featureNotEnabled(
-    feature: string,
-    aggregateType: string,
-  ): AggregateError {
-    const message = `Feature '${feature}' is not enabled on aggregate ${aggregateType}`;
+  static featureNotEnabled(feature: string): AggregateError {
+    const message = `Feature '${feature}' is not enabled on aggregate`;
     const options = {
       code: DomainErrorCode.ValidationFailed,
       data: {
         feature,
-        aggregateType,
       },
     };
     return new AggregateError(message, options);
@@ -160,6 +156,54 @@ export class AggregateError extends IDomainError {
         eventType,
         fromVersion,
         toVersion,
+      },
+    };
+    return new AggregateError(message, options);
+  }
+
+  /**
+   * Error for when apply method interception fails (e.g. method not found)
+   */
+  static cannotInterceptApplyMethod(
+    aggergateId: string,
+    data?: DomainErrorOptions,
+  ): AggregateError {
+    const message = `Cannot intercept apply method - method not found on aggregate ${aggergateId}`;
+    const options = {
+      code: DomainErrorCode.InternalError,
+      data: {
+        aggergateId,
+        ...data,
+      },
+    };
+    return new AggregateError(message, options);
+  }
+
+  /**
+   * Error for when event store is not configured
+   */
+  static eventStoreNotConfigured(data?: DomainErrorOptions): AggregateError {
+    const message = 'Event store not configured';
+    const options = {
+      code: DomainErrorCode.MissingValue,
+      data,
+    };
+    return new AggregateError(message, options);
+  }
+
+  /**
+   * Error for when aggregate does not support event replay
+   */
+  static aggregateDoesNotSupportReplay(
+    aggregateType: string,
+    data?: DomainErrorOptions,
+  ): AggregateError {
+    const message = `Aggregate ${aggregateType} does not support event replay`;
+    const options = {
+      code: DomainErrorCode.MethodNotSupported,
+      data: {
+        aggregateType,
+        ...data,
       },
     };
     return new AggregateError(message, options);

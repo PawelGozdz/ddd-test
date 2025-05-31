@@ -1,3 +1,5 @@
+### nowy claude 4
+
 # Plan Rozwoju Funkcjonalności dla DomainTS
 
 ## 1. Projekcje i Materialized Views
