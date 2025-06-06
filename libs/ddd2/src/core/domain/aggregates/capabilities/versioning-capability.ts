@@ -2,10 +2,10 @@ import {
   IAggregateRoot,
   IVersioningCapability,
   IEventUpcaster,
-  IEventHandler,
+  IAggregateEventHandler,
 } from '../aggregate-interfaces';
 
-import { IExtendedDomainEvent } from '../../events';
+import { IExtendedDomainEvent } from '../../../events';
 import { AggregateError } from '../aggregate-errors';
 
 /**
@@ -46,7 +46,7 @@ export class VersioningCapability implements IVersioningCapability {
 
   handleVersionedEvent(
     event: IExtendedDomainEvent,
-    handlers: Map<string, IEventHandler>,
+    handlers: Map<string, IAggregateEventHandler>,
   ): void {
     // Upcast event if needed
     const upcastedEvent = this.upcastEvent(event);

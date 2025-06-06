@@ -9,7 +9,7 @@ import {
 
 import { AggregateRoot } from './aggregate-root';
 
-import { EntityId } from '../value-objects';
+import { EntityId } from '../../value-objects';
 import {
   AuditCapability,
   EventSourcingCapability,

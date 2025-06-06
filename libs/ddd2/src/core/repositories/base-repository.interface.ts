@@ -1,4 +1,4 @@
-import { IAggregateRoot } from '../domain/aggregate-interfaces';
+import { IAggregateRoot } from '../domain';
 
 /**
  * Interface for basic repository operations
@@ -27,6 +27,10 @@ export interface IRepository<T extends IAggregateRoot<any>> {
    * @param aggregate - The aggregate to delete
    */
   delete?(aggregate: T): Promise<void>;
+}
+
+export interface IRepositoryProvider {
+  getRepository<T>(name: string): T | undefined;
 }
 
 /**

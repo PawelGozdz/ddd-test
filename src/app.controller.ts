@@ -28,14 +28,14 @@ interface UserState {
   isAdult: boolean;
 }
 
-class UserRoot extends AggregateRoot<string, UserState> {
+class UserRoot extends AggregateRoot<string> {
   private age: number;
 
   constructor(params: { id: EntityId<string>; age: number }) {
     super(params);
     // Enable required capabilities
     // this.enableSnapshots();
-    this.enableVersioning();
+    // this.enableVersioning();
 
     // Register event upcasters
     // this.registerUpcaster('OrderItemAdded', 1, {
@@ -94,10 +94,7 @@ class UserRoot extends AggregateRoot<string, UserState> {
 
 @Controller()
 export class AppController {
-  constructor(
-    private readonly dispatcher: IEnhancedEventDispatcher,
-    // private readonly repo: TestRepo,
-  ) {}
+  constructor() {} // private readonly repo: TestRepo, // private readonly dispatcher: IEnhancedEventDispatcher,
 
   @Get()
   getHello() {

@@ -29,10 +29,7 @@ import {
   IntegrationEventTransformerRegistry,
   UniversalEventDispatcher,
 } from '@/src';
-import {
-  correlationMiddleware,
-  loggingMiddleware,
-} from '@/src/core/events/event-dispatcher-factory';
+
 import { OrdersController } from './orders.controller';
 import { OrderEventHandler } from './infrastructure/repositories/order-persistence-handler';
 
@@ -105,9 +102,11 @@ import { OrderEventHandler } from './infrastructure/repositories/order-persisten
               enableLogging: true,
             }),
           )
-          .registerProcessor(new IntegrationEventProcessor(transformerRegistry))
-          .use(loggingMiddleware)
-          .use(correlationMiddleware);
+          .registerProcessor(
+            new IntegrationEventProcessor(transformerRegistry),
+          );
+        // .use(loggingMiddleware)
+        // .use(correlationMiddleware);
 
         return dispatcher;
       },

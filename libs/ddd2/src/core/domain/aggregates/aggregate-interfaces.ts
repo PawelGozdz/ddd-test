@@ -1,5 +1,5 @@
-import { IExtendedDomainEvent, IEventMetadata, IDomainEvent } from '../events';
-import { EntityId } from '../value-objects';
+import { IExtendedDomainEvent, IEventMetadata } from '../../events';
+import { EntityId } from '../../value-objects';
 
 // ==========================================
 // CORE AGGREGATE INTERFACES
@@ -141,7 +141,7 @@ export interface IVersioningCapability extends IAggregateCapability {
    */
   handleVersionedEvent(
     event: IExtendedDomainEvent,
-    handlers: Map<string, IEventHandler>,
+    handlers: Map<string, IAggregateEventHandler>,
   ): void;
 }
 
@@ -187,7 +187,7 @@ export interface IMiddlewareCapability extends IAggregateCapability {
   /**
    * Adds middleware to the event processing pipeline
    */
-  use(middleware: EventMiddleware): this;
+  use(middleware: EventAggregateMiddleware): this;
 }
 
 // ==========================================
@@ -239,14 +239,14 @@ export interface IAggregateBuilder<TId> {
 /**
  * Event handler function signature
  */
-export interface IEventHandler<T = any> {
+export interface IAggregateEventHandler<T = any> {
   (payload: T, metadata?: IEventMetadata): void;
 }
 
 /**
  * Event middleware function signature
  */
-export type EventMiddleware<T = any> = (
+export type EventAggregateMiddleware<T = any> = (
   event: IExtendedDomainEvent<T>,
   next: (event: IExtendedDomainEvent<T>) => void,
 ) => void;
@@ -499,13 +499,13 @@ export interface IAggregateValidator<TAggregate extends IAggregateRoot<any>> {
  */
 export interface ValidationResult {
   isValid: boolean;
-  errors: ValidationError[];
+  errors: IValidationError[];
 }
 
 /**
  * Validation error
  */
-export interface ValidationError {
+export interface IValidationError {
   field: string;
   message: string;
   code?: string;

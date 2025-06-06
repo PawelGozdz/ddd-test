@@ -2,16 +2,16 @@ import {
   IAggregateRoot,
   IAggregateCapability,
   IAggregateConstructorParams,
-  IEventHandler,
+  IAggregateEventHandler,
 } from './aggregate-interfaces';
 
 import {
   createDomainEvent,
   IExtendedDomainEvent,
   IEventMetadata,
-} from '../events';
+} from '../../events';
 
-import { EntityId } from '../value-objects';
+import { EntityId } from '../../value-objects';
 
 /**
  * Core AggregateRoot implementation with capability management
@@ -22,7 +22,7 @@ export class AggregateRoot<TId = string> implements IAggregateRoot<TId> {
   private _version: number = 0;
   private _initialVersion: number = 0;
   private _domainEvents: IExtendedDomainEvent[] = [];
-  private _eventHandlers = new Map<string, IEventHandler>();
+  private _eventHandlers = new Map<string, IAggregateEventHandler>();
   private _capabilities = new Map<string, IAggregateCapability>();
 
   constructor(params: IAggregateConstructorParams<TId>) {
@@ -66,7 +66,7 @@ export class AggregateRoot<TId = string> implements IAggregateRoot<TId> {
 
   protected registerEventHandler<T>(
     eventType: string,
-    handler: IEventHandler<T>,
+    handler: IAggregateEventHandler<T>,
   ): this {
     this._eventHandlers.set(eventType, handler);
     return this;
@@ -197,7 +197,7 @@ export class AggregateRoot<TId = string> implements IAggregateRoot<TId> {
   /**
    * Internal method for capabilities to get event handlers
    */
-  private _internal_getEventHandlers(): Map<string, IEventHandler> {
+  private _internal_getEventHandlers(): Map<string, IAggregateEventHandler> {
     return this._eventHandlers;
   }
 }

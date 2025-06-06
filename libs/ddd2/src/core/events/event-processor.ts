@@ -13,5 +13,5 @@ export interface IEventProcessor {
    * @param event - The domain event to process
    * @param registry - Registry containing access to all event buses
    */
-  process(event: IDomainEvent, registry: EventBusRegistry): Promise<void>;
+  process(event: IDomainEvent, registry?: EventBusRegistry): Promise<void>;
 }

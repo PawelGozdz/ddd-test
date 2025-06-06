@@ -4,7 +4,7 @@ import {
   IEventStore,
 } from '../aggregate-interfaces';
 
-import { IExtendedDomainEvent } from '../../events';
+import { IExtendedDomainEvent } from '../../../events';
 import { AggregateError } from '../aggregate-errors';
 
 /**

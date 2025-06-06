@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 // import { TestRepo } from './repo';
-import { OrdersModule } from './orders/orders.module';
 import { CqrsModule } from '@nestjs/cqrs';
+import { OrderProjectionModule } from './order2/order-projection.module';
 
 @Module({
-  imports: [OrdersModule, CqrsModule.forRoot()],
+  imports: [CqrsModule.forRoot(), OrderProjectionModule],
   controllers: [AppController],
   providers: [AppService],
 })

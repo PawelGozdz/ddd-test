@@ -1,4 +1,8 @@
-import { IDomainError, DomainErrorCode, DomainErrorOptions } from '../errors';
+import {
+  IDomainError,
+  DomainErrorCode,
+  DomainErrorOptions,
+} from '../../errors';
 
 /**
  * Unified error class for aggregate-related errors

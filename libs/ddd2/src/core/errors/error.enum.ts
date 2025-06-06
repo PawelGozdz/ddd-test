@@ -17,6 +17,8 @@ export enum DomainErrorCode {
   MissingValue = 'D_MISSING_VALUE',
   InternalError = 'D_INTERNAL_ERROR',
   MethodNotSupported = 'D_METHOD_NOT_SUPPORTED',
+  InvalidState = 'D_INVALID_STATE',
+  InsufficientPermissions = 'D_INSUFFICIENT_PERMISSIONS',
 }
 
 export enum ApplicationErrorCode {
