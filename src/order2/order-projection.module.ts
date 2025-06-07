@@ -17,15 +17,10 @@ import { OrderProjectionState } from './order.interfaces';
 
 @Module({
   providers: [
-    // Stores
-    {
-      provide: 'OrderProjectionStore',
-      useClass: InMemoryProjectionStore<OrderProjectionState>,
-    },
-    {
-      provide: 'CheckpointStore',
-      useClass: InMemoryCheckpointStore,
-    },
+    InMemoryProjectionStore,
+    InMemoryCheckpointStore,
+
+    // Projection
 
     {
       provide: 'OrderProjection',
