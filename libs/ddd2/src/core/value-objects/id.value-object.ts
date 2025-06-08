@@ -2,7 +2,7 @@ import { LibUtils } from '../../utils';
 import { InvalidParameterError, MissingValueError } from '../errors';
 import { BaseValueObject } from './base-value-object';
 
-type IdType = 'uuid' | 'integer' | 'text' | 'bigint';
+export type IdType = 'uuid' | 'integer' | 'text' | 'bigint';
 
 export class EntityId<T = string> extends BaseValueObject<T> {
   private readonly type: IdType;

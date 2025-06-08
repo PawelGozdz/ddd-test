@@ -1,4 +1,5 @@
 export * from './actor';
+export * from './acl';
 export * from './core';
 export * from './validations';
 export * from './utils';
